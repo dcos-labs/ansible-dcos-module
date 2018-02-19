@@ -1,6 +1,9 @@
 # Ansible DC/OS modules
 
-This can be used to control DC/OS
+This can be used to control DC/OS.
+
+Requirements: Python 3 and 'dcoscli' package installed, e.g.
+`pip install dcoscli`
 
 Examples:
 
