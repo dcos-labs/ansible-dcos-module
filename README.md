@@ -5,6 +5,8 @@ This can be used to control DC/OS.
 Requirements: Python 3 and 'dcoscli' package installed, e.g.
 `pip install dcoscli`
 
+Note: this has only been tested with DC/OS 1.10 and 'dcoscli' package version 0.5.x
+
 Examples:
 
     ---
