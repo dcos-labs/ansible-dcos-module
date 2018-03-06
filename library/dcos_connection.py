@@ -8,7 +8,7 @@ ANSIBLE_METADATA = {
 
 DOCUMENTATION = '''
 ---
-module: dcos_connect
+module: dcos_connection
 short_description: Connects and authenticates to a DC/OS cluster
 description:
     - "This module handles connection to DC/OS"
@@ -16,14 +16,14 @@ description:
 options:
     url:
         description:
-            - The full url to the Cluster, including http/https
+            - The full url to the DC/OS cluster, including http/https
     insecure:
         description:
             - Whether or not to verify the TLS connection certificate
     no_check:
         description:
             - Whether or not to verify the downloaded CA certificate
-    ca_cert:
+    ca_certs:
         description:
             - Path to root CA to verify requests
     username:
@@ -38,7 +38,7 @@ options:
     provider:
         description:
             - Name of the identity provider
-    key_path:
+    private_key:
         description:
             - Path to file with private key
 

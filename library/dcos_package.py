@@ -25,15 +25,12 @@ options:
     version:
         description:
             - The version of the package
-        required: false
     app_id:
         description:
             - The name of the application in DC/OS
-        required: false
     options:
         description:
             - An object containing the application specific options
-        required: false
 
 author:
     - Dirk Jonker (@dirkjonker)

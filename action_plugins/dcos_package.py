@@ -19,7 +19,10 @@ except ImportError:
 
 try:
     import dcos
+    import dcos.config
+    import dcos.cluster
     import dcos.package
+    import dcoscli.cluster.main
     from dcos.errors import DCOSException
     HAS_DCOS = True
 except ImportError:
@@ -46,7 +49,63 @@ def _ensure_dcos():
     display.vvv("dcos: all prerequisites seem to be in order")
 
 
+def check_cluster(url=None):
+    """Check whether cluster is already setup.
+
+    :param url: url of the cluster
+    :return: boolean whether cluster is already setup
+    """
+    if url is None:
+        # check if any cluster is currently attached
+        return any(c.is_attached() for c in dcos.cluster.get_clusters())
+
+    parsed = urlparse(url)
+
+    current_cluster = None
+
+    for c in dcos.cluster.get_clusters():
+        cluster = urlparse(c.get_url())
+        if cluster.netloc == parsed.netloc:
+            current_cluster = c
+            break
+
+    if current_cluster is not None:
+        attached = dcos.config.get_attached_cluster_path()
+        cfg_path = os.path.dirname(current_cluster.get_config_path())
+        if attached != cfg_path:
+            dcos.config.set_attached(cfg_path)
+        return True
+
+    return False
+
+
+def connect_cluster(url=None, **kwargs):
+    """Connect to a DC/OS cluster by url"""
+
+    if url is None:
+        raise AnsibleActionFail('No DC/OS cluster attached, please suppply dcos_url parameter')
+
+    try:
+        if not check_cluster(url):
+            print('not setup, setting up')
+            dcoscli.cluster.main.setup(
+                dcos_url=kwargs.get('url'),
+                insecure=kwargs.get('insecure'),
+                no_check=kwargs.get('no_check_ca'),
+                ca_certs=kwargs.get('ca_cert'),
+                username=kwargs.get('username'),
+                password_str=kwargs.get('password'),
+                password_file=kwargs.get('password_file'),
+                provider=kwargs.get('identity_provider'),
+                key_path=kwargs.get('key_path'),
+            )
+            result['changed'] = True
+    except DCOSException as e:
+        module.fail_json("Failed to connect to DC/OS cluster: {}".format(e))
+
+
 def get_current_version(pm, package, app_id):
+    """Get the current version of an installed package."""
     packages = {p['name']: p['version'] for p in pm.installed_apps(package, app_id)}
     display.vvv('packages: {}'.format(packages))
     v = packages.get(package)
@@ -61,10 +120,16 @@ def get_wanted_version(version, state):
 
 
 def install_package(pm, package, version, options=None):
+    """Install a Universe package on DC/OS."""
     display.vvv("DC/OS: installing package {} version {}"
                 .format(package, version))
     display.vvv("options: {}".format(options))
     pkg = pm.get_package_version(package, version)
+
+    if pkg.marathon_template():
+        # check options before trying to install
+        pkg.options(options)
+
     display.vvv('pkg: {}'.format(pkg))
     return pm.install_app(pkg, options, app_id=None)
 
@@ -87,14 +152,24 @@ class ActionModule(ActionBase):
             result['msg'] = 'The dcos task does not support check mode'
             return result
 
-        package_name = self._task.args.get('name', None)
-        package_version = self._task.args.get('version', None)
-        state = self._task.args.get('state', 'present')
-        app_id = self._task.args.get('app_id', package_name)
-        options = self._task.args.get('options') or {}
+        args = self._task.args
+        package_name = args.get('name', None)
+        package_version = args.get('version', None)
+        state = args.get('state', 'present')
+        app_id = args.get('app_id', package_name)
+        options = args.get('options') or {}
         options['name'] = app_id
 
         _ensure_dcos()
+
+        connect_options = args.get('connect_options')
+        if connect_options:
+            url = args.get('cluster_url')
+            if not check_cluster(url):
+                connect_cluster(url, **args)
+        else:
+            display.vvv("Warning: no connection options found, "
+                        "assuming an attached and authenticated cluster")
 
         pm = dcos.package.get_package_manager()
 
