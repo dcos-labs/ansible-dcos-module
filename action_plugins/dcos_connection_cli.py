@@ -9,7 +9,6 @@ __metaclass__ = type
 import base64
 import json
 import subprocess
-import tempfile
 import time
 
 try:
@@ -27,7 +26,7 @@ except ImportError:
     display = Display()
 
 DCOS_CONNECT_FLAGS = ['insecure', 'no_check']
-DCOS_AUTH_OPTS =[
+DCOS_AUTH_OPTS = [
     'username',
     'password',
     'password_env',
@@ -61,7 +60,7 @@ def _ensure_dcos():
 
     v = _version(raw_version)
     if v < (0, 5, 0):
-        raise AnsibleActionFail("DC/OS CLI 0.5.x is required, found {}".format(dcos.version))
+        raise AnsibleActionFail("DC/OS CLI 0.5.x is required, found {}".format(v))
     if v >= (0, 6, 0):
         raise AnsibleActionFail("DC/OS CLI version > 0.5.x detected, may not work")
     display.vvv("dcos: all prerequisites seem to be in order")

@@ -10,11 +10,6 @@ import json
 import subprocess
 import tempfile
 
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
-
 from ansible.plugins.action import ActionBase
 from ansible.errors import AnsibleActionFail
 
@@ -42,7 +37,7 @@ def _ensure_dcos():
 
     v = _version(raw_version)
     if v < (0, 5, 0):
-        raise AnsibleActionFail("DC/OS CLI 0.5.x is required, found {}".format(dcos.version))
+        raise AnsibleActionFail("DC/OS CLI 0.5.x is required, found {}".format(v))
     if v >= (0, 6, 0):
         raise AnsibleActionFail("DC/OS CLI version > 0.5.x detected, may not work")
     display.vvv("dcos: all prerequisites seem to be in order")

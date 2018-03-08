@@ -115,7 +115,6 @@ class ActionModule(ActionBase):
 
                 result['changed'] = True
         except DCOSException as e:
-            raise
-            #raise AnsibleActionFail("Failed to connect to DC/OS cluster: {}".format(e))
+            raise AnsibleActionFail("Failed to connect to DC/OS cluster: {}".format(e))
 
         return result
