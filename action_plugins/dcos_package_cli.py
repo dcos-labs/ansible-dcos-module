@@ -37,9 +37,11 @@ def _ensure_dcos():
 
     v = _version(raw_version)
     if v < (0, 5, 0):
-        raise AnsibleActionFail("DC/OS CLI 0.5.x is required, found {}".format(v))
+        raise AnsibleActionFail(
+            "DC/OS CLI 0.5.x is required, found {}".format(v))
     if v >= (0, 6, 0):
-        raise AnsibleActionFail("DC/OS CLI version > 0.5.x detected, may not work")
+        raise AnsibleActionFail(
+            "DC/OS CLI version > 0.5.x detected, may not work")
     display.vvv("dcos: all prerequisites seem to be in order")
 
 
@@ -66,18 +68,16 @@ def get_wanted_version(version, state):
 
 def install_package(package, version, options):
     """Install a Universe package on DC/OS."""
-    display.vvv("DC/OS: installing package {} version {}"
-                .format(package, version))
+    display.vvv("DC/OS: installing package {} version {}".format(
+        package, version))
 
     display.vvv("options: {}".format(options))
     with tempfile.NamedTemporaryFile('w+') as f:
         json.dump(options, f)
         f.flush()
         cmd = [
-            'dcos', 'package', 'install', package,
-            '--yes',
-            '--package-version', version,
-            '--options', f.name
+            'dcos', 'package', 'install', package, '--yes',
+            '--package-version', version, '--options', f.name
         ]
         display.vvv("command: " + ' '.join(cmd))
         display.vvv('contents:')
@@ -88,15 +88,18 @@ def uninstall_package(package, app_id):
     display.vvv("DC/OS: uninstalling package {}".format(package))
 
     cmd = [
-        'dcos', 'package', 'uninstall', package,
+        'dcos',
+        'package',
+        'uninstall',
+        package,
         '--yes',
-        '--app-id', '/' + app_id,
+        '--app-id',
+        '/' + app_id,
     ]
     display.vvv("command: " + ' '.join(cmd))
 
 
 class ActionModule(ActionBase):
-
     def run(self, tmp=None, task_vars=None):
 
         result = super(ActionModule, self).run(tmp, task_vars)
@@ -125,7 +128,8 @@ class ActionModule(ActionBase):
         wanted_version = get_wanted_version(package_version, state)
 
         if current_version == wanted_version:
-            display.vvv("Package {} already in desired state".format(package_name))
+            display.vvv(
+                "Package {} already in desired state".format(package_name))
             result['changed'] = False
         else:
             display.vvv("Package {} not in desired state".format(package_name))

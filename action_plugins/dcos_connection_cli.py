@@ -60,10 +60,12 @@ def _ensure_dcos():
 
     v = _version(raw_version)
     if v < (0, 5, 0):
-        raise AnsibleActionFail("DC/OS CLI 0.5.x is required, found {}".format(v))
+        raise AnsibleActionFail('DC/OS CLI 0.5.x is required, found {}'
+                                .format(v))
     if v >= (0, 6, 0):
-        raise AnsibleActionFail("DC/OS CLI version > 0.5.x detected, may not work")
-    display.vvv("dcos: all prerequisites seem to be in order")
+        raise AnsibleActionFail(
+            'DC/OS CLI version > 0.5.x detected, may not work')
+    display.vvv('dcos: all prerequisites seem to be in order')
 
 
 def check_cluster(name=None, url=None):
@@ -90,7 +92,8 @@ def check_cluster(name=None, url=None):
         if c['attached'] is True:
             attached_cluster = c
 
-    display.vvv('wanted:\n{}\nattached:\n{}\n'.format(wanted_cluster, attached_cluster))
+    display.vvv('wanted:\n{}\nattached:\n{}\n'.format(wanted_cluster,
+                                                      attached_cluster))
 
     if wanted_cluster is None:
         return False
@@ -144,7 +147,8 @@ def connect_cluster(**kwargs):
 
     if not check_cluster(kwargs.get('name'), url):
         if url is None:
-            raise AnsibleActionFail('Not connected: you need to specify the cluster url')
+            raise AnsibleActionFail(
+                'Not connected: you need to specify the cluster url')
 
         display.vvv('DC/OS cluster not setup, setting up')
 
@@ -159,7 +163,6 @@ def connect_cluster(**kwargs):
 
 
 class ActionModule(ActionBase):
-
     def run(self, tmp=None, task_vars=None):
 
         result = super(ActionModule, self).run(tmp, task_vars)

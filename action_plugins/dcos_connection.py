@@ -38,8 +38,8 @@ def _ensure_dcos():
     else:
         v = _version(dcos.version)
         if v < (0, 5, 0):
-            raise AnsibleActionFail("dcos 0.5.x is required, found {}"
-                                    .format(dcos.version))
+            raise AnsibleActionFail("dcos 0.5.x is required, found {}".format(
+                dcos.version))
         if v >= (0, 6, 0):
             display.v("dcos cli version > 0.5.x detected, may not work")
 
@@ -76,7 +76,6 @@ def check_cluster(name=None, url=None):
 
 
 class ActionModule(ActionBase):
-
     def run(self, tmp=None, task_vars=None):
 
         result = super(ActionModule, self).run(tmp, task_vars)
@@ -115,6 +114,7 @@ class ActionModule(ActionBase):
 
                 result['changed'] = True
         except DCOSException as e:
-            raise AnsibleActionFail("Failed to connect to DC/OS cluster: {}".format(e))
+            raise AnsibleActionFail(
+                "Failed to connect to DC/OS cluster: {}".format(e))
 
         return result

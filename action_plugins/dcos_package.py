@@ -42,16 +42,20 @@ def _ensure_dcos():
     else:
         v = _version(dcos.version)
         if v < (0, 5, 0):
-            raise AnsibleActionFail("dcos 0.5.x is required, found {}"
-                                    .format(dcos.version))
+            raise AnsibleActionFail("dcos 0.5.x is required, found {}".format(
+                dcos.version))
         if v >= (0, 6, 0):
-            raise AnsibleActionFail("dcos cli version > 0.5 detected, may not work")
+            raise AnsibleActionFail(
+                "dcos cli version > 0.5 detected, may not work")
     display.vvv("dcos: all prerequisites seem to be in order")
 
 
 def get_current_version(pm, package, app_id):
     """Get the current version of an installed package."""
-    packages = {p['name']: p['version'] for p in pm.installed_apps(package, app_id)}
+    packages = {
+        p['name']: p['version']
+        for p in pm.installed_apps(package, app_id)
+    }
     display.vvv('packages found: {}'.format(packages))
     v = packages.get(package)
     display.vvv('package: {} current version: {}'.format(package, v))
@@ -66,8 +70,8 @@ def get_wanted_version(version, state):
 
 def install_package(pm, package, version, options=None):
     """Install a Universe package on DC/OS."""
-    display.vvv("DC/OS: installing package {} version {}"
-                .format(package, version))
+    display.vvv("DC/OS: installing package {} version {}".format(
+        package, version))
     display.vvv("options: {}".format(options))
     pkg = pm.get_package_version(package, version)
 
@@ -85,7 +89,6 @@ def uninstall_package(pm, package, app_id):
 
 
 class ActionModule(ActionBase):
-
     def run(self, tmp=None, task_vars=None):
 
         result = super(ActionModule, self).run(tmp, task_vars)
@@ -113,18 +116,21 @@ class ActionModule(ActionBase):
         wanted_version = get_wanted_version(package_version, state)
 
         if current_version == wanted_version:
-            display.vvv("Package {} already in desired state".format(package_name))
+            display.vvv(
+                "Package {} already in desired state".format(package_name))
             result['changed'] = False
         else:
             display.vvv("Package {} not in desired state".format(package_name))
             try:
                 if wanted_version is not None:
                     install_package(pm, package_name, wanted_version, options)
-                    if wanted_version != get_current_version(pm, package_name, app_id):
+                    if wanted_version != get_current_version(
+                            pm, package_name, app_id):
                         raise AnsibleActionFail('failed to install')
                 else:
                     uninstall_package(pm, package_name, app_id)
-                    if wanted_version != get_current_version(pm, package_name, app_id):
+                    if wanted_version != get_current_version(
+                            pm, package_name, app_id):
                         raise AnsibleActionFail('failed to uninstall')
 
             except DCOSException as e:
