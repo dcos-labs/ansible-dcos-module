@@ -19,6 +19,8 @@ except ImportError:
 from ansible.plugins.action import ActionBase
 from ansible.errors import AnsibleActionFail
 
+from ansible.module_utils.common import ensure_dcos, run_command
+
 try:
     from __main__ import display
 except ImportError:
@@ -35,37 +37,6 @@ DCOS_AUTH_OPTS = [
     'private_key',
 ]
 DCOS_CONNECT_OPTS = DCOS_AUTH_OPTS + ['ca_certs']
-
-
-def runcmd(args):
-    p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    p.wait()
-    return p
-
-
-def _version(v):
-    return tuple(map(int, v.split('.')))
-
-
-def _ensure_dcos():
-    """Check whether the dcos[cli] package is installed."""
-
-    raw_version = ''
-    r = subprocess.check_output(['dcos', '--version']).decode()
-    for line in r.strip().split('\n'):
-        display.vvv(line)
-        k, v = line.split('=')
-        if k == 'dcoscli.version':
-            raw_version = v
-
-    v = _version(raw_version)
-    if v < (0, 5, 0):
-        raise AnsibleActionFail('DC/OS CLI 0.5.x is required, found {}'
-                                .format(v))
-    if v >= (0, 6, 0):
-        raise AnsibleActionFail(
-            'DC/OS CLI version > 0.5.x detected, may not work')
-    display.vvv('dcos: all prerequisites seem to be in order')
 
 
 def check_cluster(name=None, url=None):
@@ -119,7 +90,7 @@ def parse_connect_options(cluster_options=True, **kwargs):
 
 def ensure_auth(**connect_args):
     valid = False
-    r = runcmd(['dcos', 'config', 'show', 'core.dcos_acs_token'])
+    r = run_command(['dcos', 'config', 'show', 'core.dcos_acs_token'])
 
     if r.returncode == 0:
         parts = r.stdout.read().decode().split('.')
@@ -136,7 +107,8 @@ def ensure_auth(**connect_args):
 def refresh_auth(**kwargs):
     """Run the authentication command using the DC/OS CLI."""
     cli_args = parse_connect_options(False, **kwargs)
-    return runcmd(['dcos', 'auth', 'login'] + cli_args)
+    return run_command(['dcos', 'auth', 'login'] + cli_args,
+                       'refresh auth token', True)
 
 
 def connect_cluster(**kwargs):
@@ -176,7 +148,7 @@ class ActionModule(ActionBase):
 
         args = self._task.args
 
-        _ensure_dcos()
+        ensure_dcos()
 
         result['changed'] = connect_cluster(**args)
         return result

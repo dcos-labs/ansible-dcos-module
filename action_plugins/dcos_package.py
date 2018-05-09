@@ -9,42 +9,22 @@ __metaclass__ = type
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import time
 
-from ansible.plugins.action import ActionBase
 from ansible.errors import AnsibleActionFail
+from ansible.plugins.action import ActionBase
+
+# to prevent duplicating code, make sure we can import common stuff
+sys.path.append(os.getcwd())
+from action_plugins.common import ensure_dcos, run_command
 
 try:
     from __main__ import display
 except ImportError:
     from ansible.utils.display import Display
     display = Display()
-
-
-def _version(v):
-    return tuple(map(int, v.split('.')))
-
-
-def _ensure_dcos():
-    """Check whether the dcos[cli] package is installed."""
-
-    raw_version = ''
-    r = subprocess.check_output(['dcos', '--version']).decode()
-    for line in r.strip().split('\n'):
-        display.vvv(line)
-        k, v = line.split('=')
-        if k == 'dcoscli.version':
-            raw_version = v
-
-    v = _version(raw_version)
-    if v < (0, 5, 0):
-        raise AnsibleActionFail(
-            "DC/OS CLI 0.5.x is required, found {}".format(v))
-    if v >= (0, 6, 0):
-        raise AnsibleActionFail(
-            "DC/OS CLI version > 0.5.x detected, may not work")
-    display.vvv("dcos: all prerequisites seem to be in order")
 
 
 def get_current_version(package, app_id):
@@ -68,15 +48,6 @@ def get_wanted_version(version, state):
     return version
 
 
-def run_command(cmd, description):
-    """Run a command and catch exceptions for Ansible."""
-    display.vvv("command: " + ' '.join(cmd))
-    try:
-        display.vvv(subprocess.check_output(cmd).decode())
-    except subprocess.CalledProcessError as e:
-        raise AnsibleActionFail('Failed to {}: {}'.format(description, e))
-
-
 def install_package(package, version, options):
     """Install a Universe package on DC/OS."""
     display.vvv("DC/OS: installing package {} version {}".format(
@@ -94,7 +65,7 @@ def install_package(package, version, options):
             'dcos', 'package', 'install', package, '--yes',
             '--package-version', version, '--options', f.name
         ]
-        run_command(cmd, 'install package')
+        run_command(cmd, 'install package', stop_on_error=True)
 
 
 def uninstall_package(package, app_id):
@@ -108,10 +79,14 @@ def uninstall_package(package, app_id):
         '--yes',
         '--app-id=/' + app_id,
     ]
-    run_command(cmd, 'uninstall package')
+    run_command(cmd, 'uninstall package', stop_on_error=True)
 
 
-def wait_for_package_state(package_name, app_id, wanted_version, retries=5, delay=5):
+def wait_for_package_state(package_name,
+                           app_id,
+                           wanted_version,
+                           retries=5,
+                           delay=5):
     """Wait for a package to become in a desired state."""
     for i in range(retries):
         if wanted_version == get_current_version(package_name, app_id):
@@ -145,7 +120,7 @@ class ActionModule(ActionBase):
         if 'name' not in options['service']:
             options['service']['name'] = app_id
 
-        _ensure_dcos()
+        ensure_dcos()
 
         current_version = get_current_version(package_name, app_id)
         wanted_version = get_wanted_version(package_version, state)
@@ -158,12 +133,17 @@ class ActionModule(ActionBase):
             display.vvv("Package {} not in desired state".format(package_name))
             if wanted_version is not None:
                 install_package(package_name, wanted_version, options)
-                if not wait_for_package_state(package_name, app_id, wanted_version):
-                    raise AnsibleActionFail('failed to install: package not listed as installed')
+                if not wait_for_package_state(package_name, app_id,
+                                              wanted_version):
+                    raise AnsibleActionFail(
+                        'failed to install: package not listed as installed')
             else:
                 uninstall_package(package_name, app_id)
-                if not wait_for_package_state(package_name, app_id, wanted_version):
-                    raise AnsibleActionFail('failed to uninstall: package still listed as installed')
+                if not wait_for_package_state(package_name, app_id,
+                                              wanted_version):
+                    raise AnsibleActionFail(
+                        'failed to uninstall: package still listed as installed'
+                    )
 
             result['changed'] = True
 
