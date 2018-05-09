@@ -7,6 +7,7 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import json
+import os
 import subprocess
 import tempfile
 
@@ -71,17 +72,20 @@ def install_package(package, version, options):
     display.vvv("DC/OS: installing package {} version {}".format(
         package, version))
 
-    display.vvv("options: {}".format(options))
     with tempfile.NamedTemporaryFile('w+') as f:
         json.dump(options, f)
+
+        # force write the file to disk to make sure subcommand can read it
         f.flush()
+        os.fsync(f)
+
         cmd = [
             'dcos', 'package', 'install', package, '--yes',
             '--package-version', version, '--options', f.name
         ]
         display.vvv("command: " + ' '.join(cmd))
-        display.vvv('contents:')
-        display.vvv(subprocess.check_output(['cat', f.name]).decode())
+        # display.vvv(subprocess.check_output(['cat', f.name]).decode())
+        display.vvv(subprocess.check_output(cmd).decode())
 
 
 def uninstall_package(package, app_id):
@@ -93,10 +97,10 @@ def uninstall_package(package, app_id):
         'uninstall',
         package,
         '--yes',
-        '--app-id',
-        '/' + app_id,
+        '--app-id=/' + app_id,
     ]
     display.vvv("command: " + ' '.join(cmd))
+    display.vvv(subprocess.check_output(cmd).decode())
 
 
 class ActionModule(ActionBase):
@@ -119,8 +123,10 @@ class ActionModule(ActionBase):
         # ensure app_id has no leading or trailing /
         app_id = args.get('app_id', package_name).strip('/')
 
-        options = args.get('options') or {}
-        options['name'] = app_id
+        options = args.get('options') or {'service': {}}
+
+        if 'name' not in options['service']:
+            options['service']['name'] = app_id
 
         _ensure_dcos()
 
