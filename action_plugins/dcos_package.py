@@ -10,6 +10,7 @@ import json
 import os
 import subprocess
 import tempfile
+import time
 
 from ansible.plugins.action import ActionBase
 from ansible.errors import AnsibleActionFail
@@ -110,6 +111,15 @@ def uninstall_package(package, app_id):
     run_command(cmd, 'uninstall package')
 
 
+def wait_for_package_state(package_name, app_id, wanted_version, retries=5, delay=5):
+    """Wait for a package to become in a desired state."""
+    for i in range(retries):
+        if wanted_version == get_current_version(package_name, app_id):
+            return True
+        time.sleep(delay)
+    return False
+
+
 class ActionModule(ActionBase):
     def run(self, tmp=None, task_vars=None):
 
@@ -148,12 +158,12 @@ class ActionModule(ActionBase):
             display.vvv("Package {} not in desired state".format(package_name))
             if wanted_version is not None:
                 install_package(package_name, wanted_version, options)
-                if wanted_version != get_current_version(package_name, app_id):
-                    raise AnsibleActionFail('failed to install')
+                if not wait_for_package_state(package_name, app_id, wanted_version):
+                    raise AnsibleActionFail('failed to install: package not listed as installed')
             else:
                 uninstall_package(package_name, app_id)
-                if wanted_version != get_current_version(package_name, app_id):
-                    raise AnsibleActionFail('failed to uninstall')
+                if not wait_for_package_state(package_name, app_id, wanted_version):
+                    raise AnsibleActionFail('failed to uninstall: package still listed as installed')
 
             result['changed'] = True
 
