@@ -67,11 +67,21 @@ def get_wanted_version(version, state):
     return version
 
 
+def run_command(cmd, description):
+    """Run a command and catch exceptions for Ansible."""
+    display.vvv("command: " + ' '.join(cmd))
+    try:
+        display.vvv(subprocess.check_output(cmd).decode())
+    except subprocess.CalledProcessError as e:
+        raise AnsibleActionFail('Failed to {}: {}'.format(description, e))
+
+
 def install_package(package, version, options):
     """Install a Universe package on DC/OS."""
     display.vvv("DC/OS: installing package {} version {}".format(
         package, version))
 
+    # create a temporary file for the options json file
     with tempfile.NamedTemporaryFile('w+') as f:
         json.dump(options, f)
 
@@ -83,9 +93,7 @@ def install_package(package, version, options):
             'dcos', 'package', 'install', package, '--yes',
             '--package-version', version, '--options', f.name
         ]
-        display.vvv("command: " + ' '.join(cmd))
-        # display.vvv(subprocess.check_output(['cat', f.name]).decode())
-        display.vvv(subprocess.check_output(cmd).decode())
+        run_command(cmd, 'install package')
 
 
 def uninstall_package(package, app_id):
@@ -99,8 +107,7 @@ def uninstall_package(package, app_id):
         '--yes',
         '--app-id=/' + app_id,
     ]
-    display.vvv("command: " + ' '.join(cmd))
-    display.vvv(subprocess.check_output(cmd).decode())
+    run_command(cmd, 'uninstall package')
 
 
 class ActionModule(ActionBase):
