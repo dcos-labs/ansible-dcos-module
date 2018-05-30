@@ -8,35 +8,25 @@ __metaclass__ = type
 
 import base64
 import json
-import subprocess
 import time
 
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
 
 from ansible.plugins.action import ActionBase
 from ansible.errors import AnsibleActionFail
 
-from ansible.module_utils.common import ensure_dcos, run_command
+try:
+    import dcos.auth
+    import dcos.config
+    import dcos.cluster
+except ImportError:
+    raise AnsibleActionFail("Missing package: try 'pip install dcos-python'")
 
 try:
     from __main__ import display
 except ImportError:
     from ansible.utils.display import Display
     display = Display()
-
-DCOS_CONNECT_FLAGS = ['insecure', 'no_check']
-DCOS_AUTH_OPTS = [
-    'username',
-    'password',
-    'password_env',
-    'password_file',
-    'provider',
-    'private_key',
-]
-DCOS_CONNECT_OPTS = DCOS_AUTH_OPTS + ['ca_certs']
 
 
 def check_cluster(name=None, url=None):
@@ -51,16 +41,17 @@ def check_cluster(name=None, url=None):
     else:
         fqdn = None
 
+    display.vvv('Checking cluster @ {}'.format(fqdn))
+
     attached_cluster = None
     wanted_cluster = None
 
-    clusters = subprocess.check_output(['dcos', 'cluster', 'list', '--json'])
-    for c in json.loads(clusters):
-        if fqdn == urlparse(c['url']).netloc:
+    for c in dcos.cluster.get_clusters():
+        if fqdn == urlparse(c.get_url()).netloc:
             wanted_cluster = c
-        elif c['name'] == name:
+        elif c.get_name() == name:
             wanted_cluster = c
-        if c['attached'] is True:
+        if c.is_attached():
             attached_cluster = c
 
     display.vvv('wanted:\n{}\nattached:\n{}\n'.format(wanted_cluster,
@@ -71,66 +62,74 @@ def check_cluster(name=None, url=None):
     elif wanted_cluster == attached_cluster:
         return True
     else:
-        subprocess.check_call(
-            ['dcos', 'cluster', 'attach', wanted_cluster['cluster_id']])
+        dcos.cluster.set_attached(wanted_cluster.get_cluster_path())
         return True
 
 
-def parse_connect_options(cluster_options=True, **kwargs):
-    valid_opts = DCOS_CONNECT_OPTS if cluster_options else DCOS_AUTH_OPTS
-    cli_args = []
-    for k, v in kwargs.items():
-        cli_k = '--' + k.replace('_', '-')
-        if cluster_options and k in DCOS_CONNECT_FLAGS and v is True:
-            cli_args.append(cli_k)
-        if k in valid_opts:
-            cli_args.extend([cli_k, v])
-    return cli_args
+def setup_cluster(url, username, password):
+    """Setup a connection to a DC/OS cluster."""
+
+    with dcos.cluster.setup_directory() as tempdir:
+        dcos.cluster.set_attached(tempdir)
+
+        # in python 2 this url NEEDS to be a str
+        # otherwise for some reason toml messes up
+        dcos.config.set_val("core.dcos_url", str(url))
+
+        with open('/Users/dirkjonker/.dcos/clusters/setup/dcos.toml') as f:
+            display.vvv(f.read())
+        # get validated dcos_url
+        dcos.config.set_val("core.ssl_verify", "false")
+
+        login(url, username, password)
+        dcos.cluster.setup_cluster_config(url, tempdir, False)
 
 
-def ensure_auth(**connect_args):
-    valid = False
-    r = run_command(['dcos', 'config', 'show', 'core.dcos_acs_token'])
+def ensure_auth(url, username, password, time_buffer=60 * 60):
+    """Ensure that the auth token is valid."""
 
-    if r.returncode == 0:
-        parts = r.stdout.read().decode().split('.')
-        info = json.loads(base64.b64decode(parts[1]))
-        exp = int(info['exp'])
-        limit = int(time.time()) + 5 * 60
-        if exp > limit:
-            valid = True
-
-    if not valid:
-        refresh_auth(**connect_args)
+    token = dcos.config.get_config_val('core.dcos_acs_token')
+    parts = token.split('.')
+    info = json.loads(base64.b64decode(parts[1]))
+    exp = int(info['exp'])
+    limit = int(time.time()) + time_buffer
+    if exp < limit:
+        login(url, username, password)
 
 
-def refresh_auth(**kwargs):
-    """Run the authentication command using the DC/OS CLI."""
-    cli_args = parse_connect_options(False, **kwargs)
-    return run_command(['dcos', 'auth', 'login'] + cli_args,
-                       'refresh auth token', True)
+def login(url, username, password):
+    """Login to the current DC/OS cluster."""
+
+    dcos.auth.dcos_uid_password_auth(url, username, password)
 
 
 def connect_cluster(**kwargs):
     """Connect to a DC/OS cluster by url"""
 
     changed = False
-    url = kwargs.get('url')
 
-    if not check_cluster(kwargs.get('name'), url):
+    url = kwargs.get('url')
+    if url is None:
+        url = dcos.config.get_config_val('core.dcos_url')
+
+    name = kwargs.get('name')
+    username = kwargs.get('username')
+    password = kwargs.get('password')
+    password_file = kwargs.get('password_file')
+
+    if not password and password_file is not None:
+        with open(password_file, 'r') as f:
+            password = f.read().strip()
+
+    if not check_cluster(name, url):
         if url is None:
             raise AnsibleActionFail(
                 'Not connected: you need to specify the cluster url')
+        setup_cluster(url, username, password)
 
-        display.vvv('DC/OS cluster not setup, setting up')
-
-        cli_args = parse_connect_options(**kwargs)
-        display.vvv('args: {}'.format(cli_args))
-
-        subprocess.check_call(['dcos', 'cluster', 'setup', url] + cli_args)
         changed = True
 
-    ensure_auth(**kwargs)
+    ensure_auth(url, username, password)
     return changed
 
 
@@ -147,8 +146,6 @@ class ActionModule(ActionBase):
             return result
 
         args = self._task.args
-
-        ensure_dcos()
 
         result['changed'] = connect_cluster(**args)
         return result

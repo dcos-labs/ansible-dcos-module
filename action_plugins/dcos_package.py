@@ -1,24 +1,19 @@
 """
-Action plugin to configure a DC/OS cluster.
-Uses the Ansible host to connect directly to DC/OS.
+Action plugin to install a Universe package on a DC/OS cluster.
 """
 
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import json
-import os
-import subprocess
-import sys
-import tempfile
 import time
 
 from ansible.errors import AnsibleActionFail
 from ansible.plugins.action import ActionBase
 
-# to prevent duplicating code, make sure we can import common stuff
-sys.path.append(os.getcwd())
-from action_plugins.common import ensure_dcos, run_command
+try:
+    import dcos.package
+except ImportError:
+    raise AnsibleActionFail("Missing package: try 'pip install dcos-python'")
 
 try:
     from __main__ import display
@@ -29,15 +24,15 @@ except ImportError:
 
 def get_current_version(package, app_id):
     """Get the current version of an installed package."""
-    r = subprocess.check_output(['dcos', 'package', 'list', '--json'])
-    packages = json.loads(r)
 
-    display.vvv('looking for package {} app_id {}'.format(package, app_id))
+    pm = dcos.package.get_package_manager()
+    packages = pm.installed_apps(package, app_id)
 
     v = None
     for p in packages:
-        if p['name'] == package and '/' + app_id in p['apps']:
+        if p['name'] == package and p['appId'] == '/' + app_id:
             v = p['version']
+
     display.vvv('{} current version: {}'.format(package, v))
     return v
 
@@ -48,38 +43,22 @@ def get_wanted_version(version, state):
     return version
 
 
-def install_package(package, version, options):
+def install_package(name, version, options):
     """Install a Universe package on DC/OS."""
     display.vvv("DC/OS: installing package {} version {}".format(
-        package, version))
+        name, version))
 
-    # create a temporary file for the options json file
-    with tempfile.NamedTemporaryFile('w+') as f:
-        json.dump(options, f)
-
-        # force write the file to disk to make sure subcommand can read it
-        f.flush()
-        os.fsync(f)
-
-        cmd = [
-            'dcos', 'package', 'install', package, '--yes',
-            '--package-version', version, '--options', f.name
-        ]
-        run_command(cmd, 'install package', stop_on_error=True)
+    pm = dcos.package.get_package_manager()
+    package = pm.get_package_version(name, version)
+    pm.install_app(package, options)
 
 
-def uninstall_package(package, app_id):
-    display.vvv("DC/OS: uninstalling package {}".format(package))
+def uninstall_package(name, app_id):
+    """Install a Universe package from DC/OS."""
+    display.vvv("DC/OS: uninstalling package {}".format(name))
 
-    cmd = [
-        'dcos',
-        'package',
-        'uninstall',
-        package,
-        '--yes',
-        '--app-id=/' + app_id,
-    ]
-    run_command(cmd, 'uninstall package', stop_on_error=True)
+    pm = dcos.package.get_package_manager()
+    dcos.package.uninstall(pm, name, False, app_id, False, True)
 
 
 def wait_for_package_state(package_name,
@@ -120,8 +99,6 @@ class ActionModule(ActionBase):
         if 'name' not in options['service']:
             options['service']['name'] = app_id
 
-        ensure_dcos()
-
         current_version = get_current_version(package_name, app_id)
         wanted_version = get_wanted_version(package_version, state)
 
@@ -135,15 +112,12 @@ class ActionModule(ActionBase):
                 install_package(package_name, wanted_version, options)
                 if not wait_for_package_state(package_name, app_id,
                                               wanted_version):
-                    raise AnsibleActionFail(
-                        'failed to install: package not listed as installed')
+                    raise AnsibleActionFail('package not installed')
             else:
                 uninstall_package(package_name, app_id)
                 if not wait_for_package_state(package_name, app_id,
                                               wanted_version):
-                    raise AnsibleActionFail(
-                        'failed to uninstall: package still listed as installed'
-                    )
+                    raise AnsibleActionFail('package still installed')
 
             result['changed'] = True
 
