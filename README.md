@@ -22,6 +22,18 @@ Examples:
         state: present
         version: 2.0.1-2.2.0-1
 
+    - name: Run a Marathon application
+      dcos_marathon:
+        app_id: nginx
+        state: present
+        resource:
+          cpu: 1
+          mem: 128
+	  instances: 1
+          container:
+            type: MESOS
+            docker:
+              image: nginx
 
 
 For more documentation about the modules please check the documentation in the modules
