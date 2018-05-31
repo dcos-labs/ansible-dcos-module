@@ -35,10 +35,7 @@ def get_app_state(marathon, app_id):
         return 'absent'
 
 
-def wait_for_app_state(marathon,
-                       app_id,
-                       wanted_state='present',
-                       retries=6):
+def wait_for_app_state(marathon, app_id, wanted_state='present', retries=6):
     """Wait for a Marathon app to be in a desired state."""
 
     # exponential backoff
@@ -55,14 +52,6 @@ class ActionModule(ActionBase):
     def run(self, tmp=None, task_vars=None):
 
         result = super(ActionModule, self).run(tmp, task_vars)
-        del tmp  # tmp no longer has any effect
-
-        if self._play_context.check_mode:
-            # in --check mode, always skip this module execution
-            result['skipped'] = True
-            result['msg'] = 'The dcos task does not support check mode'
-            return result
-
         result['changed'] = False
 
         args = self._task.args
@@ -79,6 +68,13 @@ class ActionModule(ActionBase):
 
         current_state = get_app_state(marathon, app_id)
 
+        if self._play_context.check_mode:
+            if current_state != wanted_state:
+                result['changed'] = True
+                result['msg'] = 'would change app {} to be {}'.format(
+                    app_id, wanted_state)
+            return result
+
         if current_state == wanted_state:
             display.vvv("Marathon app {} already {}".format(
                 app_id, wanted_state))
@@ -89,11 +85,13 @@ class ActionModule(ActionBase):
                 if not wait_for_app_state(marathon, app_id, wanted_state):
                     raise AnsibleActionFail(
                         'Marathon app does not appear to be running')
+                result['msg'] = "Marathon app {} deployed".format(app_id)
             else:
                 marathon.remove_app(app_id)
                 if not wait_for_app_state(marathon, app_id, wanted_state):
                     raise AnsibleActionFail(
                         'Marathon app still appears to be running')
+                result['msg'] = "Marathon app {} removed".format(app_id)
 
             result['changed'] = True
 

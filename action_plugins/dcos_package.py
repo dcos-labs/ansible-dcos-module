@@ -78,13 +78,7 @@ class ActionModule(ActionBase):
     def run(self, tmp=None, task_vars=None):
 
         result = super(ActionModule, self).run(tmp, task_vars)
-        del tmp  # tmp no longer has any effect
-
-        if self._play_context.check_mode:
-            # in --check mode, always skip this module execution
-            result['skipped'] = True
-            result['msg'] = 'The dcos task does not support check mode'
-            return result
+        result['changed'] = False
 
         args = self._task.args
         package_name = args.get('name', None)
@@ -102,23 +96,28 @@ class ActionModule(ActionBase):
         current_version = get_current_version(package_name, app_id)
         wanted_version = get_wanted_version(package_version, state)
 
+        if self._play_context.check_mode:
+            if current_version != wanted_version:
+                result['changed'] = True
+                result['msg'] = 'would change package {} to {}'.format(
+                    package_name, wanted_version)
+            return result
+
         if current_version == wanted_version:
-            display.vvv(
-                "Package {} already in desired state".format(package_name))
             result['changed'] = False
         else:
-            display.vvv("Package {} not in desired state".format(package_name))
             if wanted_version is not None:
                 install_package(package_name, wanted_version, options)
                 if not wait_for_package_state(package_name, app_id,
                                               wanted_version):
                     raise AnsibleActionFail('package not installed')
+                result['msg'] = "DC/OS package {} installed".format(app_id)
             else:
                 uninstall_package(package_name, app_id)
                 if not wait_for_package_state(package_name, app_id,
                                               wanted_version):
                     raise AnsibleActionFail('package still installed')
+                result['msg'] = "DC/OS package {} uninstalled".format(app_id)
 
             result['changed'] = True
-
         return result

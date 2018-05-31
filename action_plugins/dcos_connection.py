@@ -86,7 +86,9 @@ def setup_cluster(url, username, password):
 
 
 def ensure_auth(url, username, password, time_buffer=60 * 60):
-    """Ensure that the auth token is valid."""
+    """Ensure that the auth token is valid.
+
+    Returns boolean whether auth was refreshed"""
 
     token = dcos.config.get_config_val('core.dcos_acs_token')
     parts = token.split('.')
@@ -95,6 +97,8 @@ def ensure_auth(url, username, password, time_buffer=60 * 60):
     limit = int(time.time()) + time_buffer
     if exp < limit:
         login(url, username, password)
+        return True
+    return False
 
 
 def login(url, username, password):
@@ -103,49 +107,43 @@ def login(url, username, password):
     dcos.auth.dcos_uid_password_auth(url, username, password)
 
 
-def connect_cluster(**kwargs):
-    """Connect to a DC/OS cluster by url"""
-
-    changed = False
-
-    url = kwargs.get('url')
-    if url is None:
-        url = dcos.config.get_config_val('core.dcos_url')
-
-    name = kwargs.get('name')
-    username = kwargs.get('username')
-    password = kwargs.get('password')
-    password_file = kwargs.get('password_file')
-
-    if not password and password_file is not None:
-        with open(password_file, 'r') as f:
-            password = f.read().strip()
-
-    if not check_cluster(name, url):
-        if url is None:
-            raise AnsibleActionFail(
-                'Not connected: you need to specify the cluster url')
-        setup_cluster(url, username, password)
-
-        changed = True
-
-    ensure_auth(url, username, password)
-    return changed
-
-
 class ActionModule(ActionBase):
     def run(self, tmp=None, task_vars=None):
 
         result = super(ActionModule, self).run(tmp, task_vars)
-        del tmp  # tmp no longer has any effect
+        result['changed'] = False
 
         if self._play_context.check_mode:
             # in --check mode, always skip this module execution
             result['skipped'] = True
-            result['msg'] = 'The dcos task does not support check mode'
+            result['msg'] = 'dcos_connection does not support check mode'
             return result
 
         args = self._task.args
 
-        result['changed'] = connect_cluster(**args)
+        url = args.get('url')
+        if url is None:
+            url = dcos.config.get_config_val('core.dcos_url')
+
+        name = args.get('name')
+        username = args.get('username')
+        password = args.get('password')
+        password_file = args.get('password_file')
+
+        if not password and password_file is not None:
+            with open(password_file, 'r') as f:
+                password = f.read().strip()
+
+        if not check_cluster(name, url):
+            if url is None:
+                raise AnsibleActionFail(
+                    'Not connected: you need to specify the cluster url')
+            setup_cluster(url, username, password)
+
+            result['changed'] = True
+            result['msg'] = 'Cluster connection updated to {}'.format(url)
+
+        if ensure_auth(url, username, password):
+            result['changed'] = True
+            result['msg'] = '\n'.join(result['msg'], 'refreshed auth token')
         return result
