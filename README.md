@@ -21,8 +21,14 @@ Installing packages form universe:
     - name: Ensure Spark is installed
       dcos_package:
         name: spark
+        app_id: namespace/spark
         state: present
-        version: 2.0.1-2.2.0-1
+        version: 2.3.1-2.2.1-2
+        options:
+          service:
+            docker-image: "mesosphere/spark:2.3.1-2.2.1-2-hadoop-2.7"
+            UCR_containerizer: true
+            user: root
 
 Running Marathon applications:
 
@@ -75,4 +81,8 @@ subdirectory.
 
 ## Known limitations
 
+- Packages and Marathon apps can not be updated in-place
 - Users cannot be assigned permissions individually.
+- Error handling is very minimal, some Python experience is required. You may have to inspect the [dcos-python](https://github.com/dirkjonker/dcos-python) source code.
+
+All of the above is fixable in either the action plugin or the dcos-python package. Please open issues or pull requests if you find more problems.
