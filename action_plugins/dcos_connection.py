@@ -66,23 +66,6 @@ def check_cluster(name=None, url=None):
         return True
 
 
-def setup_cluster(url, username, password):
-    """Setup a connection to a DC/OS cluster."""
-
-    with dcos.cluster.setup_directory() as tempdir:
-        dcos.cluster.set_attached(tempdir)
-
-        # in python 2 this url NEEDS to be a str
-        # otherwise for some reason toml messes up
-        dcos.config.set_val("core.dcos_url", str(url))
-
-        # FIXME
-        dcos.config.set_val("core.ssl_verify", "false")
-
-        login(url, username, password)
-        dcos.cluster.setup_cluster_config(url, tempdir, False)
-
-
 def ensure_auth(url, username, password, time_buffer=60 * 60):
     """Ensure that the auth token is valid.
 
@@ -94,15 +77,9 @@ def ensure_auth(url, username, password, time_buffer=60 * 60):
     exp = int(info['exp'])
     limit = int(time.time()) + time_buffer
     if exp < limit:
-        login(url, username, password)
+        dcos.auth.dcos_uid_password_auth(url, username, password)
         return True
     return False
-
-
-def login(url, username, password):
-    """Login to the current DC/OS cluster."""
-
-    dcos.auth.dcos_uid_password_auth(url, username, password)
 
 
 class ActionModule(ActionBase):
@@ -136,7 +113,7 @@ class ActionModule(ActionBase):
             if url is None:
                 raise AnsibleActionFail(
                     'Not connected: you need to specify the cluster url')
-            setup_cluster(url, username, password)
+            dcos.cluster.setup_cluster(url, username, password)
 
             result['changed'] = True
             result['msg'] = 'Cluster connection updated to {}'.format(url)
