@@ -76,9 +76,7 @@ def setup_cluster(url, username, password):
         # otherwise for some reason toml messes up
         dcos.config.set_val("core.dcos_url", str(url))
 
-        with open('/Users/dirkjonker/.dcos/clusters/setup/dcos.toml') as f:
-            display.vvv(f.read())
-        # get validated dcos_url
+        # FIXME
         dcos.config.set_val("core.ssl_verify", "false")
 
         login(url, username, password)
