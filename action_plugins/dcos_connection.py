@@ -8,19 +8,22 @@ __metaclass__ = type
 
 import base64
 import json
+import subprocess
 import time
+import os
+import sys
 
-from six.moves.urllib.parse import urlparse
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 
 from ansible.plugins.action import ActionBase
 from ansible.errors import AnsibleActionFail
 
-try:
-    import dcos.auth
-    import dcos.config
-    import dcos.cluster
-except ImportError:
-    raise AnsibleActionFail("Missing package: try 'pip install dcos-python'")
+# to prevent duplicating code, make sure we can import common stuff
+sys.path.append(os.getcwd())
+from action_plugins.common import ensure_dcos, run_command
 
 try:
     from __main__ import display
@@ -28,6 +31,16 @@ except ImportError:
     from ansible.utils.display import Display
     display = Display()
 
+DCOS_CONNECT_FLAGS = ['insecure', 'no_check']
+DCOS_AUTH_OPTS = [
+    'username',
+    'password',
+    'password_env',
+    'password_file',
+    'provider',
+    'private_key',
+]
+DCOS_CONNECT_OPTS = DCOS_AUTH_OPTS + ['ca_certs']
 
 def check_cluster(name=None, url=None):
     """Check whether cluster is already setup.
@@ -41,17 +54,16 @@ def check_cluster(name=None, url=None):
     else:
         fqdn = None
 
-    display.vvv('Checking cluster @ {}'.format(fqdn))
-
     attached_cluster = None
     wanted_cluster = None
 
-    for c in dcos.cluster.get_clusters():
-        if fqdn == urlparse(c.get_url()).netloc:
+    clusters = subprocess.check_output(['dcos', 'cluster', 'list', '--json'], env=dcos_path)
+    for c in json.loads(clusters):
+        if fqdn == urlparse(c['url']).netloc:
             wanted_cluster = c
-        elif c.get_name() == name:
+        elif c['name'] == name:
             wanted_cluster = c
-        if c.is_attached():
+        if c['attached'] is True:
             attached_cluster = c
 
     display.vvv('wanted:\n{}\nattached:\n{}\n'.format(wanted_cluster,
@@ -62,63 +74,89 @@ def check_cluster(name=None, url=None):
     elif wanted_cluster == attached_cluster:
         return True
     else:
-        dcos.cluster.set_attached(wanted_cluster.get_cluster_path())
+        subprocess.check_call(
+            ['dcos', 'cluster', 'attach', wanted_cluster['cluster_id']], env=dcos_path)
         return True
 
 
-def ensure_auth(url, username, password, time_buffer=60 * 60):
-    """Ensure that the auth token is valid.
+def parse_connect_options(cluster_options=True, **kwargs):
+    valid_opts = DCOS_CONNECT_OPTS if cluster_options else DCOS_AUTH_OPTS
+    cli_args = []
+    for k, v in kwargs.items():
+        cli_k = '--' + k.replace('_', '-')
+        if cluster_options and k in DCOS_CONNECT_FLAGS and v is True:
+            cli_args.append(cli_k)
+        if k in valid_opts:
+            cli_args.extend([cli_k, v])
+    return cli_args
 
-    Returns boolean whether auth was refreshed"""
 
-    token = dcos.config.get_config_val('core.dcos_acs_token')
-    parts = token.split('.')
-    info = json.loads(base64.b64decode(parts[1]))
-    exp = int(info['exp'])
-    limit = int(time.time()) + time_buffer
-    if exp < limit:
-        dcos.auth.dcos_uid_password_auth(url, username, password)
-        return True
-    return False
+def ensure_auth(**connect_args):
+    valid = False
+    r = run_command(['dcos', 'config', 'show', 'core.dcos_acs_token'])
+
+    if r.returncode == 0:
+        parts = r.stdout.read().decode().split('.')
+        info = json.loads(base64.b64decode(parts[1]))
+        exp = int(info['exp'])
+        limit = int(time.time()) + 5 * 60
+        if exp > limit:
+            valid = True
+
+    if not valid:
+        refresh_auth(**connect_args)
+
+
+def refresh_auth(**kwargs):
+    """Run the authentication command using the DC/OS CLI."""
+    cli_args = parse_connect_options(False, **kwargs)
+    return run_command(['dcos', 'auth', 'login'] + cli_args,
+                       'refresh auth token', True)
+
+
+def connect_cluster(**kwargs):
+    """Connect to a DC/OS cluster by url"""
+
+    changed = False
+    url = kwargs.get('url')
+
+    if not check_cluster(kwargs.get('name'), url):
+        if url is None:
+            raise AnsibleActionFail(
+                'Not connected: you need to specify the cluster url')
+
+        display.vvv('DC/OS cluster not setup, setting up')
+
+        cli_args = parse_connect_options(**kwargs)
+        display.vvv('args: {}'.format(cli_args))
+
+        subprocess.check_call(['dcos', 'cluster', 'setup', url] + cli_args, env=dcos_path)
+        changed = True
+
+    # ensure_auth(**kwargs)
+    return changed
 
 
 class ActionModule(ActionBase):
     def run(self, tmp=None, task_vars=None):
 
         result = super(ActionModule, self).run(tmp, task_vars)
-        result['changed'] = False
+        del tmp  # tmp no longer has any effect
 
         if self._play_context.check_mode:
             # in --check mode, always skip this module execution
             result['skipped'] = True
-            result['msg'] = 'dcos_connection does not support check mode'
+            result['msg'] = 'The dcos task does not support check mode'
             return result
+
+        global dcos_path
+        dcos_path = os.environ.copy()
+        dcos_path["PATH"] = os.getcwd() + ':' + dcos_path["PATH"]
+        display.vvv('dcos cli: path environment variable: {}'.format(dcos_path["PATH"]) )
 
         args = self._task.args
 
-        url = args.get('url')
-        if url is None:
-            url = dcos.config.get_config_val('core.dcos_url')
+        ensure_dcos()
 
-        name = args.get('name')
-        username = args.get('username')
-        password = args.get('password')
-        password_file = args.get('password_file')
-
-        if not password and password_file is not None:
-            with open(password_file, 'r') as f:
-                password = f.read().strip()
-
-        if not check_cluster(name, url):
-            if url is None:
-                raise AnsibleActionFail(
-                    'Not connected: you need to specify the cluster url')
-            dcos.cluster.setup_cluster(url, username, password)
-
-            result['changed'] = True
-            result['msg'] = 'Cluster connection updated to {}'.format(url)
-
-        if ensure_auth(url, username, password):
-            result['changed'] = True
-            result['msg'] = '\n'.join(result['msg'], 'refreshed auth token')
+        result['changed'] = connect_cluster(**args)
         return result
