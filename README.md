@@ -2,9 +2,7 @@
 
 This can be used to control DC/OS.
 
-Requirements: [dcos-python](https://github.com/dirkjonker/dcos-python) package installed, e.g. `pip install dcos-python`
-
-Note: this has only been tested with DC/OS 1.10. There are probably lots of bugs. Please report them on github, or create a pull request!
+There are probably lots of bugs. Please report them on github, or create a pull request!
 
 ## Examples
 
@@ -83,6 +81,20 @@ subdirectory.
 
 - Packages and Marathon apps can not be updated in-place
 - Users cannot be assigned permissions individually.
-- Error handling is very minimal, some Python experience is required. You may have to inspect the [dcos-python](https://github.com/dirkjonker/dcos-python) source code.
+- Error handling is very minimal, some Python experience is required.
 
 All of the above is fixable in either the action plugin or the dcos-python package. Please open issues or pull requests if you find more problems.
+
+## Acknowledgements
+
+Current maintainers:
+* [Dirk Jonker][github-dirkjonker]
+* [Jan Repnak][github-jrx]
+
+## License
+[DC/OS][github-dcos], along with this project, are both open source software released under the
+[Apache Software License, Version 2.0](LICENSE).
+
+[github-dcos]: https://github.com/dcos/dcos
+[github-jrx]: https://github.com/jrx
+[github-rimusz]: https://github.com/rimusz
