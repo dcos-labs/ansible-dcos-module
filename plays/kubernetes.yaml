@@ -1,0 +1,101 @@
+---
+- name: install kubernetes as a service
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to cluster
+    dcos_connection:
+      url: https://<master-ip>/
+      username: admin
+      password: admin
+
+# Create Service Account
+
+# dcos security org service-accounts keypair private-key.pem public-key.pem
+# dcos security org service-accounts delete kubernetes
+# dcos security org service-accounts create -p public-key.pem -d 'Kubernetes service account' kubernetes
+# dcos security secrets delete kubernetes/sa
+# dcos security secrets create-sa-secret private-key.pem kubernetes kubernetes/sa
+# dcos security org groups add_user superusers kubernetes
+
+
+# Create Permissions
+
+# dcos:mesos:master:framework:role:<service name>-role create
+# dcos:mesos:master:task:user:root create
+# dcos:mesos:agent:task:user:root create
+# dcos:mesos:master:reservation:role:<service name>-role create
+# dcos:mesos:master:reservation:principal:<service name> delete
+# dcos:mesos:master:volume:role:<service name>-role create
+# dcos:mesos:master:volume:principal:<service name> delete
+
+# dcos:service:marathon:marathon:services:/ create
+# dcos:service:marathon:marathon:services:/ delete
+
+# dcos:secrets:default:/<service name>/* full
+# dcos:secrets:list:default:/<service name> read
+# dcos:adminrouter:ops:ca:rw full
+# dcos:adminrouter:ops:ca:ro full
+
+# dcos:mesos:master:framework:role:slave_public/<service name>-role create
+# dcos:mesos:master:framework:role:slave_public/<service name>-role read
+# dcos:mesos:master:reservation:role:slave_public/<service name>-role create
+# dcos:mesos:master:volume:role:slave_public/<service name>-role create
+# dcos:mesos:master:framework:role:slave_public read
+# dcos:mesos:agent:framework:role:slave_public read
+
+  - name: Ensure Kubernetes is installed
+    dcos_package:
+      name: kubernetes
+      app_id: kubernetes
+      version: 1.1.1-1.10.4
+      state: present
+      options:
+        {
+          'service': {
+            'name': 'kubernetes' 
+          },
+          'kubernetes': {
+            'high_availability': false,
+            'node_count': 1,
+            'public_node_count': 0
+          }
+        }
+
+  - name: Ensure Marathon-LB is installed
+    dcos_package:
+      name: marathon-lb
+      app_id: marathon-lb
+      version: 1.12.2
+      state: present
+
+  - name: Deploy Kubectl Proxy via Marathon
+    dcos_marathon:
+      app_id: /kubectl-proxy
+      state: present
+      options:
+        {
+          "id": "/kubectl-proxy",
+          "instances": 1,
+          "cpus": 0.001,
+          "mem": 16,
+          "cmd": "tail -F /dev/null",
+          "container": {
+            "type": "MESOS"
+          },
+          "portDefinitions": [
+            {
+              "protocol": "tcp",
+              "port": 0
+            }
+          ],
+          "labels": {
+            "HAPROXY_GROUP": "external",
+            "HAPROXY_0_MODE": "http",
+            "HAPROXY_0_PORT": "6443",
+            "HAPROXY_0_SSL_CERT": "/etc/ssl/cert.pem",
+            "HAPROXY_0_BACKEND_SERVER_OPTIONS": "  timeout connect 10s\n  timeout client 86400s\n  timeout server 86400s\n  timeout tunnel 86400s\n  server kube-apiserver apiserver.kubernetes.l4lb.thisdcos.directory:6443 ssl verify none\n"
+          }
+        }

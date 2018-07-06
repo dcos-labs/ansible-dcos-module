@@ -1,3 +1,7 @@
+# python
 venv/
 *.pyc
 __pycache__/
+
+# ansible
+*.retry

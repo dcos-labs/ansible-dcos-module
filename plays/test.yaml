@@ -1,0 +1,19 @@
+---
+- name: some tests
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to cluster
+    dcos_connection:
+      url: https://<master-ip>/
+      username: admin
+      password: admin
+
+  - name: Ensure Spark is installed
+    dcos_package:
+      name: spark
+      app_id: spark
+      state: absent
+      version: 2.3.0-2.2.1-2

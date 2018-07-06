@@ -43,7 +43,7 @@ def ensure_dcos():
     display.vvv("dcos: all prerequisites seem to be in order")
 
 
-def run_command(cmd, description='run command', stop_on_error=False):
+def run_command(cmd, description='run command', stop_on_error=False, input=None):
     """Run a command and catch exceptions for Ansible."""
     display.vvv("command: " + ' '.join(cmd))
 
