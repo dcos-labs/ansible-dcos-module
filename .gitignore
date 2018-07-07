@@ -5,3 +5,6 @@ __pycache__/
 
 # ansible
 *.retry
+
+# ide
+.vscode/

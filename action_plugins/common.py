@@ -42,6 +42,32 @@ def ensure_dcos():
             "DC/OS CLI version > 0.7.x detected, may not work")
     display.vvv("dcos: all prerequisites seem to be in order")
 
+def ensure_dcos_security():
+    """Check whether the dcos[cli] security extension is installed."""
+
+    raw_version = ''
+    try:
+        r = subprocess.check_output(['dcos', 'security', '--version'], env=_dcos_path()).decode()
+    except:
+        display.vvv("dcos security: not installed")
+        install_dcos_security_cli()
+        r = subprocess.check_output(['dcos', 'security', '--version'], env=_dcos_path()).decode()
+
+    v = _version(r)
+    if v < (1, 2, 0):
+        raise AnsibleActionFail(
+            "DC/OS Security CLI 1.2.x is required, found {}".format(v))
+
+    display.vvv("dcos security: all prerequisites seem to be in order")
+
+def install_dcos_security_cli():
+    """Install DC/OS Security CLI"""
+    display.vvv("dcos security: installing cli")
+
+    cmd = [
+        'dcos', 'package', 'install', 'dcos-enterprise-cli', '--cli', '--yes'
+    ]
+    display.vvv(subprocess.check_output(cmd, env=_dcos_path()).decode())
 
 def run_command(cmd, description='run command', stop_on_error=False, input=None):
     """Run a command and catch exceptions for Ansible."""
@@ -50,7 +76,7 @@ def run_command(cmd, description='run command', stop_on_error=False, input=None)
     from subprocess import CalledProcessError, check_output
 
     try:
-        output = check_output(cmd, env=_dcos_path())
+        output = check_output(cmd, env=_dcos_path(),stderr=subprocess.STDOUT)
         returncode = 0
     except CalledProcessError as e:
         output = e.output
