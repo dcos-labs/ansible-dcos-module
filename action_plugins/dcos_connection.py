@@ -23,7 +23,7 @@ from ansible.errors import AnsibleActionFail
 
 # to prevent duplicating code, make sure we can import common stuff
 sys.path.append(os.getcwd())
-from action_plugins.common import ensure_dcos, run_command
+from action_plugins.common import ensure_dcos, run_command, _dcos_path
 
 try:
     from __main__ import display
@@ -57,7 +57,7 @@ def check_cluster(name=None, url=None):
     attached_cluster = None
     wanted_cluster = None
 
-    clusters = subprocess.check_output(['dcos', 'cluster', 'list', '--json'], env=dcos_path)
+    clusters = subprocess.check_output(['dcos', 'cluster', 'list', '--json'], env=_dcos_path())
     for c in json.loads(clusters):
         if fqdn == urlparse(c['url']).netloc:
             wanted_cluster = c
@@ -75,7 +75,7 @@ def check_cluster(name=None, url=None):
         return True
     else:
         subprocess.check_call(
-            ['dcos', 'cluster', 'attach', wanted_cluster['cluster_id']], env=dcos_path)
+            ['dcos', 'cluster', 'attach', wanted_cluster['cluster_id']], env=_dcos_path())
         return True
 
 
@@ -130,7 +130,7 @@ def connect_cluster(**kwargs):
         cli_args = parse_connect_options(**kwargs)
         display.vvv('args: {}'.format(cli_args))
 
-        subprocess.check_call(['dcos', 'cluster', 'setup', url] + cli_args, env=dcos_path)
+        subprocess.check_call(['dcos', 'cluster', 'setup', url] + cli_args, env=_dcos_path())
         changed = True
 
     # ensure_auth(**kwargs)
@@ -148,11 +148,6 @@ class ActionModule(ActionBase):
             result['skipped'] = True
             result['msg'] = 'The dcos task does not support check mode'
             return result
-
-        global dcos_path
-        dcos_path = os.environ.copy()
-        dcos_path["PATH"] = os.getcwd() + ':' + dcos_path["PATH"]
-        display.vvv('dcos cli: path environment variable: {}'.format(dcos_path["PATH"]) )
 
         args = self._task.args
 

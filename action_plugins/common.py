@@ -22,7 +22,7 @@ def ensure_dcos():
     """Check whether the dcos cli is installed."""
 
     try:
-        r = subprocess.check_output(['dcos', '--version']).decode()
+        r = subprocess.check_output(['dcos', '--version'], env=_dcos_path()).decode()
     except subprocess.CalledProcessError:
         raise AnsibleActionFail("DC/OS CLI is not installed!")
 
@@ -39,7 +39,7 @@ def ensure_dcos():
             "DC/OS CLI 0.5.x is required, found {}".format(v))
     if v >= (0, 7, 0):
         raise AnsibleActionFail(
-            "DC/OS CLI version > 0.5.x detected, may not work")
+            "DC/OS CLI version > 0.7.x detected, may not work")
     display.vvv("dcos: all prerequisites seem to be in order")
 
 

@@ -18,7 +18,7 @@ from ansible.errors import AnsibleActionFail
 
 # to prevent duplicating code, make sure we can import common stuff
 sys.path.append(os.getcwd())
-from action_plugins.common import ensure_dcos, run_command
+from action_plugins.common import ensure_dcos, run_command, _dcos_path
 
 try:
     from __main__ import display
@@ -28,7 +28,7 @@ except ImportError:
 
 def get_app_state(app_id):
     """Get the current state of an app."""
-    r = subprocess.check_output(['dcos', 'marathon', 'app', 'list', '--json' ], env=dcos_path)
+    r = subprocess.check_output(['dcos', 'marathon', 'app', 'list', '--json' ], env=_dcos_path())
     apps = json.loads(r)
 
     display.vvv('looking for app_id {}'.format(app_id))
@@ -89,7 +89,7 @@ def app_update(app_id, wanted_state, options):
 
         from subprocess import Popen, PIPE
 
-        p = Popen(cmd, env=dcos_path, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        p = Popen(cmd, env=_dcos_path(), stdin=PIPE, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate(json.dumps(options))
 
         display.vvv("stdout {}".format(stdout))
@@ -119,12 +119,6 @@ class ActionModule(ActionBase):
             result['skipped'] = True
             result['msg'] = 'The dcos task does not support check mode'
             return result
-
-        global dcos_path
-        dcos_path = os.environ.copy()
-        dcos_path["PATH"] = os.getcwd() + ':' + dcos_path["PATH"]
-        display.vvv('dcos cli: path environment variable: {}'.format(dcos_path["PATH"]) )
-
 
         args = self._task.args
         state = args.get('state', 'present')
