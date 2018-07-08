@@ -20,11 +20,10 @@ Installing packages form universe:
       dcos_package:
         name: spark
         app_id: namespace/spark
+        version: 2.3.0-2.2.1-2
         state: present
-        version: 2.3.1-2.2.1-2
         options:
           service:
-            docker-image: "mesosphere/spark:2.3.1-2.2.1-2-hadoop-2.7"
             UCR_containerizer: true
             user: root
 
@@ -34,7 +33,7 @@ Running Marathon applications:
       dcos_marathon:
         app_id: nginx
         state: present
-        resource:
+        options:
           cpu: 1
           mem: 128
           instances: 1
@@ -42,13 +41,15 @@ Running Marathon applications:
             type: MESOS
             docker:
               image: nginx
+            portMappings:
+              - containerPort: 80
+                hostPort: 0
+                protocol: tcp
+                name: default
+          networks:
+            - mode: container/bridge
 
 Managing IAM users, groups, permissions:
-
-    - name: Ensure a permission resource exists
-      dcos_iam_resource:
-        rid: dcos:mesos:master:framework:role:*
-        state: present
 
     - name: Create a group
       dcos_iam_group:
@@ -79,19 +80,21 @@ subdirectory.
 
 ## Known limitations
 
-- Packages and Marathon apps can not be updated in-place
-- Users cannot be assigned permissions individually.
+- Package updates are not triggered by changing the options given to Ansible.
+- Users and service-accounts cannot be assigned permissions individually.
 - Error handling is very minimal, some Python experience is required.
 
-All of the above is fixable in either the action plugin or the dcos-python package. Please open issues or pull requests if you find more problems.
+All of the above is fixable in either the action plugin or the DC/OS CLI. Please open issues or pull requests if you find more problems.
 
 ## Acknowledgements
 
 Current maintainers:
-* [Dirk Jonker][github-dirkjonker]
-* [Jan Repnak][github-jrx]
+
+- [Dirk Jonker][github-dirkjonker]
+- [Jan Repnak][github-jrx]
 
 ## License
+
 [DC/OS][github-dcos], along with this project, are both open source software released under the
 [Apache Software License, Version 2.0](LICENSE).
 

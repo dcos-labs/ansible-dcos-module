@@ -1,0 +1,124 @@
+---
+- name: Install Kubernetes as a Service
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to cluster
+    dcos_connection:
+      url: https://172.17.0.3/
+      username: admin
+      password: admin
+
+  - name: Create a group for Kubernetes
+    dcos_iam_group:
+      gid: kubernetes-group
+      description: Permissions for Kubernetes
+      state: present
+      permissions:
+        - rid: dcos:mesos:master:framework:role:*
+          action: read
+        - rid: dcos:mesos:master:framework:role:kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:task:user:root
+          action: create
+        - rid: dcos:mesos:agent:task:user:root
+          action: create
+        - rid: dcos:mesos:master:reservation:role:kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:reservation:principal:kubernetes
+          action: delete
+        - rid: dcos:mesos:master:volume:role:kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:volume:principal:kubernetes
+          action: delete
+        - rid: dcos:service:marathon:marathon:services:/
+          action: create
+        - rid: dcos:service:marathon:marathon:services:/
+          action: delete
+        - rid: dcos:secrets:default:/kubernetes/*
+          action: full
+        - rid: dcos:secrets:list:default:/kubernetes
+          action: read
+        - rid: dcos:adminrouter:ops:ca:rw
+          action: full
+        - rid: dcos:adminrouter:ops:ca:ro
+          action: full
+        - rid: dcos:mesos:master:framework:role:slave_public/kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:framework:role:slave_public/kubernetes-role
+          action: read
+        - rid: dcos:mesos:master:reservation:role:slave_public/kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:volume:role:slave_public/kubernetes-role 
+          action: create
+        - rid: dcos:mesos:master:framework:role:slave_public
+          action: read
+        - rid: dcos:mesos:agent:framework:role:slave_public
+          action: read
+
+  - name: Create service account for Kubernetes
+    dcos_iam_serviceaccount:
+      sid: kubernetes
+      description: 'Kubernetes Service Account'
+      secret_path: kubernetes/secret
+      groups: 
+        - kubernetes-group
+      state: present
+
+  - name: Ensure Kubernetes is installed
+    dcos_package:
+      name: kubernetes
+      app_id: kubernetes
+      version: 1.1.1-1.10.4
+      state: present
+      options:
+        {
+          'service': {
+            'name': 'kubernetes',
+            'service_account': 'kubernetes',
+            'service_account_secret': 'kubernetes/secret' 
+          },
+          'kubernetes': {
+            'high_availability': false,
+            'node_count': 1,
+            'public_node_count': 0
+          }
+        }
+
+  - name: Ensure Marathon-LB is installed
+    dcos_package:
+      name: marathon-lb
+      app_id: marathon-lb
+      version: 1.12.2
+      state: present
+
+  - name: Deploy Kubectl Proxy via Marathon
+    dcos_marathon:
+      app_id: /kubectl-proxy
+      state: present
+      options:
+        {
+          "id": "/kubectl-proxy",
+          "instances": 1,
+          "cpus": 0.001,
+          "mem": 16,
+          "cmd": "tail -F /dev/null",
+          "container": {
+            "type": "MESOS"
+          },
+          "portDefinitions": [
+            {
+              "protocol": "tcp",
+              "port": 0
+            }
+          ],
+          "labels": {
+            "HAPROXY_GROUP": "external",
+            "HAPROXY_0_MODE": "http",
+            "HAPROXY_0_PORT": "6443",
+            "HAPROXY_0_SSL_CERT": "/etc/ssl/cert.pem",
+            "HAPROXY_0_BACKEND_SERVER_OPTIONS": "  timeout connect 10s\n  timeout client 86400s\n  timeout server 86400s\n  timeout tunnel 86400s\n  server kube-apiserver apiserver.kubernetes.l4lb.thisdcos.directory:6443 ssl verify none\n"
+          }
+        }

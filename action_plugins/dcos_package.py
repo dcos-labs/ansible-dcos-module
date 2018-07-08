@@ -18,7 +18,7 @@ from ansible.errors import AnsibleActionFail
 
 # to prevent duplicating code, make sure we can import common stuff
 sys.path.append(os.getcwd())
-from action_plugins.common import ensure_dcos, run_command
+from action_plugins.common import ensure_dcos, run_command, _dcos_path
 
 try:
     from __main__ import display
@@ -28,7 +28,7 @@ except ImportError:
 
 def get_current_version(package, app_id):
     """Get the current version of an installed package."""
-    r = subprocess.check_output(['dcos', 'package', 'list', '--json', '--app-id='+app_id ], env=dcos_path)
+    r = subprocess.check_output(['dcos', 'package', 'list', '--json', '--app-id='+app_id ], env=_dcos_path())
     packages = json.loads(r)
 
     display.vvv('looking for package {} app_id {}'.format(package, app_id))
@@ -62,9 +62,19 @@ def install_package(package, version, options):
         f.flush()
         os.fsync(f)
 
+        display.vvv(subprocess.check_output(
+        ['cat', f.name]).decode())
+
         cmd = [
-            'dcos', 'package', 'install', package, '--yes',
-            '--package-version', version, '--options', f.name
+            'dcos',
+            'package',
+            'install',
+            package,
+            '--yes',
+            '--package-version',
+            version,
+            '--options',
+            f.name
         ]
         run_command(cmd, 'install package', stop_on_error=True)
 
@@ -118,12 +128,6 @@ class ActionModule(ActionBase):
             result['skipped'] = True
             result['msg'] = 'The dcos task does not support check mode'
             return result
-
-        global dcos_path
-        dcos_path = os.environ.copy()
-        dcos_path["PATH"] = os.getcwd() + ':' + dcos_path["PATH"]
-        display.vvv('dcos cli: path environment variable: {}'.format(dcos_path["PATH"]) )
-
 
         args = self._task.args
         package_name = args.get('name', None)
