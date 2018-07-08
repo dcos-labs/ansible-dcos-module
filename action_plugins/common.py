@@ -77,7 +77,7 @@ def run_command(cmd, description='run command', stop_on_error=False, input=None)
 
     try:
         output = check_output(cmd, env=_dcos_path(),stderr=subprocess.STDOUT)
-        # output = check_output(cmd, env=_dcos_path())
+        #output = check_output(cmd, env=_dcos_path())
         returncode = 0
     except CalledProcessError as e:
         output = e.output

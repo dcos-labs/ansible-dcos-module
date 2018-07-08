@@ -56,6 +56,9 @@ def app_create(app_id, wanted_state, options):
         f.flush()
         os.fsync(f)
 
+        display.vvv(subprocess.check_output(
+        ['cat', f.name]).decode())
+
         cmd = [
             'dcos',
             'marathon',

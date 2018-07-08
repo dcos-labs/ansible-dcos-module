@@ -62,9 +62,19 @@ def install_package(package, version, options):
         f.flush()
         os.fsync(f)
 
+        display.vvv(subprocess.check_output(
+        ['cat', f.name]).decode())
+
         cmd = [
-            'dcos', 'package', 'install', package, '--yes',
-            '--package-version', version, '--options', f.name
+            'dcos',
+            'package',
+            'install',
+            package,
+            '--yes',
+            '--package-version',
+            version,
+            '--options',
+            f.name
         ]
         run_command(cmd, 'install package', stop_on_error=True)
 
