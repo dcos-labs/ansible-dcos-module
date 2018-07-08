@@ -1,5 +1,5 @@
 ---
-- name: some tests
+- name: Some Tests
   hosts: localhost
   serial: 1
   become: false
@@ -7,13 +7,42 @@
 
   - name: Connect to cluster
     dcos_connection:
-      url: https://<master-ip>/
+      url: https://172.17.0.3/
       username: admin
       password: admin
+
+  - name: create a secret
+    dcos_secret:
+      path: test/secret
+      value: "Hello World!"
 
   - name: Ensure Spark is installed
     dcos_package:
       name: spark
-      app_id: spark
-      state: absent
+      app_id: namespace/spark
       version: 2.3.0-2.2.1-2
+      state: present
+      options:
+        service:
+          UCR_containerizer: true
+          user: root
+
+  - name: Run a Marathon application
+    dcos_marathon:
+      app_id: nginx
+      state: present
+      options:
+        cpu: 1
+        mem: 128
+        instances: 1
+        container:
+          type: MESOS
+          docker:
+            image: nginx
+          portMappings:
+            - containerPort: 80
+              hostPort: 0
+              protocol: tcp
+              name: default
+        networks:
+          - mode: container/bridge

@@ -1,5 +1,5 @@
 ---
-- name: install kubernetes as a service
+- name: Install Kubernetes as a Service
   hosts: localhost
   serial: 1
   become: false
@@ -7,44 +7,65 @@
 
   - name: Connect to cluster
     dcos_connection:
-      url: https://<master-ip>/
+      url: https://172.17.0.3/
       username: admin
       password: admin
 
-# Create Service Account
+  - name: Create a group for Kubernetes
+    dcos_iam_group:
+      gid: kubernetes-group
+      description: Permissions for Kubernetes
+      state: present
+      permissions:
+        - rid: dcos:mesos:master:framework:role:*
+          action: read
+        - rid: dcos:mesos:master:framework:role:kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:task:user:root
+          action: create
+        - rid: dcos:mesos:agent:task:user:root
+          action: create
+        - rid: dcos:mesos:master:reservation:role:kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:reservation:principal:kubernetes
+          action: delete
+        - rid: dcos:mesos:master:volume:role:kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:volume:principal:kubernetes
+          action: delete
+        - rid: dcos:service:marathon:marathon:services:/
+          action: create
+        - rid: dcos:service:marathon:marathon:services:/
+          action: delete
+        - rid: dcos:secrets:default:/kubernetes/*
+          action: full
+        - rid: dcos:secrets:list:default:/kubernetes
+          action: read
+        - rid: dcos:adminrouter:ops:ca:rw
+          action: full
+        - rid: dcos:adminrouter:ops:ca:ro
+          action: full
+        - rid: dcos:mesos:master:framework:role:slave_public/kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:framework:role:slave_public/kubernetes-role
+          action: read
+        - rid: dcos:mesos:master:reservation:role:slave_public/kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:volume:role:slave_public/kubernetes-role 
+          action: create
+        - rid: dcos:mesos:master:framework:role:slave_public
+          action: read
+        - rid: dcos:mesos:agent:framework:role:slave_public
+          action: read
 
-# dcos security org service-accounts keypair private-key.pem public-key.pem
-# dcos security org service-accounts delete kubernetes
-# dcos security org service-accounts create -p public-key.pem -d 'Kubernetes service account' kubernetes
-# dcos security secrets delete kubernetes/sa
-# dcos security secrets create-sa-secret private-key.pem kubernetes kubernetes/sa
-# dcos security org groups add_user superusers kubernetes
-
-
-# Create Permissions
-
-# dcos:mesos:master:framework:role:<service name>-role create
-# dcos:mesos:master:task:user:root create
-# dcos:mesos:agent:task:user:root create
-# dcos:mesos:master:reservation:role:<service name>-role create
-# dcos:mesos:master:reservation:principal:<service name> delete
-# dcos:mesos:master:volume:role:<service name>-role create
-# dcos:mesos:master:volume:principal:<service name> delete
-
-# dcos:service:marathon:marathon:services:/ create
-# dcos:service:marathon:marathon:services:/ delete
-
-# dcos:secrets:default:/<service name>/* full
-# dcos:secrets:list:default:/<service name> read
-# dcos:adminrouter:ops:ca:rw full
-# dcos:adminrouter:ops:ca:ro full
-
-# dcos:mesos:master:framework:role:slave_public/<service name>-role create
-# dcos:mesos:master:framework:role:slave_public/<service name>-role read
-# dcos:mesos:master:reservation:role:slave_public/<service name>-role create
-# dcos:mesos:master:volume:role:slave_public/<service name>-role create
-# dcos:mesos:master:framework:role:slave_public read
-# dcos:mesos:agent:framework:role:slave_public read
+  - name: Create service account for Kubernetes
+    dcos_iam_serviceaccount:
+      sid: kubernetes
+      description: 'Kubernetes Service Account'
+      secret_path: kubernetes/secret
+      groups: 
+        - kubernetes-group
+      state: present
 
   - name: Ensure Kubernetes is installed
     dcos_package:
@@ -55,7 +76,9 @@
       options:
         {
           'service': {
-            'name': 'kubernetes' 
+            'name': 'kubernetes',
+            'service_account': 'kubernetes',
+            'service_account_secret': 'kubernetes/secret' 
           },
           'kubernetes': {
             'high_availability': false,
