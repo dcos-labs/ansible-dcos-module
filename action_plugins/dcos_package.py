@@ -151,22 +151,20 @@ class ActionModule(ActionBase):
         if current_version == wanted_version:
             display.vvv(
                 "Package {} already in desired state".format(package_name))
+            
+            if state == "present":
+                update_package(package_name, app_id, wanted_version, options)
+
             result['changed'] = False
         else:
             display.vvv("Package {} not in desired state".format(package_name))
             if wanted_version is not None:
                 if current_version is not None:
                     update_package(package_name, app_id, wanted_version, options)
-                    # if wanted_version != get_current_version(package_name, app_id):
-                    #     raise AnsibleActionFail('failed to update')
                 else:
                     install_package(package_name, wanted_version, options)
-                    # if wanted_version != get_current_version(package_name, app_id):
-                    #     raise AnsibleActionFail('failed to install')
             else:
                 uninstall_package(package_name, app_id)
-                # if wanted_version != get_current_version(package_name, app_id):
-                #     raise AnsibleActionFail('failed to uninstall')
 
             result['changed'] = True
 

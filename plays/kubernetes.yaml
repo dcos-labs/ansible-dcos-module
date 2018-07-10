@@ -71,7 +71,7 @@
     dcos_package:
       name: kubernetes
       app_id: kubernetes
-      version: 1.1.1-1.10.4
+      version: 1.2.0-1.10.5
       state: present
       options:
         {
@@ -81,9 +81,10 @@
             'service_account_secret': 'kubernetes/secret' 
           },
           'kubernetes': {
-            'high_availability': false,
-            'node_count': 1,
-            'public_node_count': 0
+            'high_availability': true,
+            'node_count': 3,
+            'authorization_mode': 'AlwaysAllow',
+            'public_node_count': 1
           }
         }
 
@@ -93,6 +94,9 @@
       app_id: marathon-lb
       version: 1.12.2
       state: present
+      options:
+        marathon-lb:
+          instances: 1
 
   - name: Deploy Kubectl Proxy via Marathon
     dcos_marathon:

@@ -80,8 +80,9 @@ subdirectory.
 
 ## Known limitations
 
-- Package updates are not triggered by changing the options given to Ansible.
+- Package and Marathon app updates are triggered with every Ansible run.
 - Users and service-accounts cannot be assigned permissions individually.
+- Revoking of permissions is not possible.
 - Error handling is very minimal, some Python experience is required.
 
 All of the above is fixable in either the action plugin or the DC/OS CLI. Please open issues or pull requests if you find more problems.
