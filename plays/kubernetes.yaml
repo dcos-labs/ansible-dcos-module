@@ -83,10 +83,30 @@
           'kubernetes': {
             'high_availability': true,
             'node_count': 3,
-            'authorization_mode': 'AlwaysAllow',
+            'authorization_mode': 'RBAC',
             'public_node_count': 1
           }
         }
+
+  - name: Create a group for Marathon-LB
+    dcos_iam_group:
+      gid: marathon-lb-group
+      description: Permissions for Marathon-LB
+      state: present
+      permissions:
+        - rid: dcos:service:marathon:marathon:services:/
+          action: read
+        - rid: dcos:service:marathon:marathon:admin:events
+          action: read
+
+  - name: Create service account for Marathon-LB
+    dcos_iam_serviceaccount:
+      sid: marathon-lb
+      description: 'Marathon-lb Service Account'
+      secret_path: marathon-lb/secret
+      groups: 
+        - marathon-lb-group
+      state: present
 
   - name: Ensure Marathon-LB is installed
     dcos_package:
@@ -96,6 +116,8 @@
       state: present
       options:
         marathon-lb:
+          secret_name: 'marathon-lb/secret'
+          marathon-uri: 'https://marathon.mesos:8443'
           instances: 1
 
   - name: Deploy Kubectl Proxy via Marathon
