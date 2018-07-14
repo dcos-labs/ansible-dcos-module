@@ -44,7 +44,7 @@ def get_app_state(app_id):
          continue
     return state
 
-def app_create(app_id, wanted_state, options):
+def app_create(app_id, options):
     """Deploy an app via Marathon"""
     display.vvv("DC/OS: Marathon create app {}".format(app_id))
 
@@ -69,7 +69,7 @@ def app_create(app_id, wanted_state, options):
         run_command(cmd, 'add app', stop_on_error=True)
 
 
-def app_update(app_id, wanted_state, options):
+def app_update(app_id, options):
     """Update an app via Marathon"""
     display.vvv("DC/OS: Marathon update app {}".format(app_id))
 
@@ -143,14 +143,14 @@ class ActionModule(ActionBase):
                 "Marathon app {} already in desired state {}".format(app_id, wanted_state))
 
             if wanted_state == "present":
-                app_update(app_id, wanted_state, options)
+                app_update(app_id, options)
 
             result['changed'] = False
         else:
             display.vvv("Marathon app {} not in desired state {}".format(app_id, wanted_state))
 
             if wanted_state != 'absent':
-                app_create(app_id, wanted_state, options)
+                app_create(app_id, options)
             else:
                 app_remove(app_id)
 

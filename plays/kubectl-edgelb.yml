@@ -1,0 +1,120 @@
+---
+- name: Install Kubectl Proxy via Edge-LB
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to cluster
+    dcos_connection:
+      url: https://172.17.0.3/
+      username: admin
+      password: admin
+
+  - name: Create a group for Edge-LB
+    dcos_iam_group:
+      gid: edgelb-group
+      description: Permissions for Edge-LB
+      state: present
+      permissions:
+        - rid: dcos:adminrouter:service:marathon
+          action: full
+        - rid: dcos:adminrouter:package
+          action: full
+        - rid: dcos:adminrouter:service:edgelb
+          action: full
+        - rid: dcos:service:marathon:marathon:services:/dcos-edgelb
+          action: full
+        - rid: dcos:mesos:master:endpoint:path:/api/v1
+          action: full
+        - rid: dcos:mesos:master:endpoint:path:/api/v1/scheduler
+          action: full
+        - rid: dcos:mesos:master:framework:principal:edge-lb-principal
+          action: full
+        - rid: dcos:mesos:master:framework:role
+          action: full
+        - rid: dcos:mesos:master:reservation:principal:edge-lb-principal
+          action: full
+        - rid: dcos:mesos:master:reservation:role
+          action: full
+        - rid: dcos:mesos:master:volume:principal:edge-lb-principal
+          action: full
+        - rid: dcos:mesos:master:volume:role
+          action: full
+        - rid: dcos:mesos:master:task:user:root
+          action: full
+        - rid: dcos:mesos:master:task:app_id
+          action: full
+
+  - name: Create service account for Edge-LB
+    dcos_iam_serviceaccount:
+      sid: edgelb
+      description: 'Edge-LB Service Account'
+      secret_path: dcos-edgelb/secret
+      groups: 
+        - edgelb-group
+      state: present
+
+  - name: Ensure Edge-LB is installed
+    dcos_package:
+      name: edgelb
+      app_id: dcos-edgelb/api
+      version: v1.0.3
+      state: present
+      options:
+        {
+        "service": {
+          "secretName": "dcos-edgelb/secret",
+          "principal": "edgelb",
+          "mesosProtocol": "https"
+        }
+      }
+
+  - name: Assign permissions for pool kubectl-proxy to Edge-LB
+    dcos_iam_group:
+      gid: edgelb-group
+      description: Permissions for Edge-LB
+      state: present
+      permissions:
+        - rid: dcos:adminrouter:service:dcos-edgelb/pools/kubectl-proxy
+          action: full
+
+  - name: Create kubectl-proxy pool
+    dcos_edgelb:
+      pool_id: kubectl-proxy
+      state: present
+      options:
+        {
+          "apiVersion": "V2",
+          "name": "kubectl-proxy",
+          "count": 1,
+          "autoCertificate": true,
+          "haproxy": {
+            "frontends": [{
+              "bindPort": 6443,
+              "protocol": "HTTPS",
+              "certificates": [
+                "$AUTOCERT"
+              ],
+              "linkBackend": {
+                "defaultBackend": "kubernetes-apiserver"
+              }
+            }],
+            "backends": [{
+              "name": "kubernetes-apiserver",
+              "protocol": "HTTPS",
+              "services": [{
+                "mesos": {
+                  "frameworkName": "kubernetes",
+                  "taskNamePattern": "kube-apiserver"
+                },
+                "endpoint": {
+                  "portName": "apiserver"
+                }
+              }]
+            }],
+            "stats": {
+              "bindPort": 6090
+            }
+          }
+        }

@@ -78,12 +78,20 @@ Managing secrets:
 For more documentation about the modules please check the documentation in the modules
 subdirectory.
 
+## Playbooks
+
+Below are some playbooks that make use of the different actions:
+
+* [Install Kubernetes on DC/OS Enterprise](plays/kubernetes.yml)
+* [Expose Kubectl Proxy via Edge-LB](plays/kubectl-edgelb.yml)
+* [Expose Kubectl Proxy via Marathon-LB](plays/kubectl-mlb.yml)
+
 ## Known limitations
 
-- Package and Marathon app updates are triggered with every Ansible run.
-- Users and service-accounts cannot be assigned permissions individually.
-- Revoking of permissions is not possible.
-- Error handling is very minimal, some Python experience is required.
+* Package and Marathon app updates are triggered with every Ansible run.
+* Users and service-accounts cannot be assigned permissions individually.
+* Revoking of permissions is not possible.
+* Error handling is very minimal, some Python experience is required.
 
 All of the above is fixable in either the action plugin or the DC/OS CLI. Please open issues or pull requests if you find more problems.
 
@@ -91,8 +99,8 @@ All of the above is fixable in either the action plugin or the DC/OS CLI. Please
 
 Current maintainers:
 
-- [Dirk Jonker][github-dirkjonker]
-- [Jan Repnak][github-jrx]
+* [Dirk Jonker][github-dirkjonker]
+* [Jan Repnak][github-jrx]
 
 ## License
 
