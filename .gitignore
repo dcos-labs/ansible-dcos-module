@@ -4,7 +4,11 @@ venv/
 __pycache__/
 
 # ansible
+hosts.yaml
 *.retry
 
 # ide
 .vscode/
+
+# cli
+dcos

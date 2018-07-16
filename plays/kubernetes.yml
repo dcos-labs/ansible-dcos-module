@@ -5,11 +5,8 @@
   become: false
   tasks:
 
-  - name: Connect to cluster
-    dcos_connection:
-      url: https://172.17.0.3/
-      username: admin
-      password: admin
+  - name: Connect to the cluster
+    include: connection.yml
 
   - name: Create a group for Kubernetes
     dcos_iam_group:
