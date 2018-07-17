@@ -1,0 +1,117 @@
+---
+- name: Install Confluent-Kafka
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Create a group for ZooKeeper
+    dcos_iam_group:
+      gid: confluent-zookeeper-group
+      description: Permissions for ZooKeeper
+      state: present
+      permissions:
+        - rid: dcos:mesos:master:framework:role:confluent-zookeeper-role/users/confluent-zookeeper
+          action: create
+        - rid: dcos:mesos:master:reservation:role:confluent-zookeeper-role/users/confluent-zookeeper
+          action: create
+        - rid: dcos:mesos:master:volume:role:confluent-zookeeper-role/users/confluent-zookeeper
+          action: create
+        - rid: dcos:mesos:master:task:user:nobody/users/confluent-zookeeper
+          action: create
+        - rid: dcos:mesos:master:reservation:principal:zookeeper/users/confluent-zookeeper
+          action: delete
+        - rid: dcos:mesos:master:volume:principal:confluent-zookeeper/users/confluent-zookeeper
+          action: delete
+
+  - name: Create service account for ZooKeeper
+    dcos_iam_serviceaccount:
+      sid: confluent-zookeeper
+      description: 'ZooKeeper Service Account'
+      secret_path: confluent-zookeeper/secret
+      groups: 
+        - confluent-zookeeper-group
+      state: present
+
+  - name: Ensure ZooKeeper is installed
+    dcos_package:
+      name: confluent-zookeeper
+      app_id: confluent-zookeeper
+      version: 2.2.0-4.0.0e
+      state: present
+      options:
+        {
+          'service': {
+            'name': 'confluent-zookeeper',
+            'service_account': 'confluent-zookeeper',
+            'service_account_secret': 'confluent-zookeeper/secret' 
+          }
+        }
+
+  - name: Create a group for Kafka
+    dcos_iam_group:
+      gid: confluent-kafka-group
+      description: Permissions for Kafka
+      state: present
+      permissions:
+        - rid: dcos:mesos:master:framework:role:confluent-kafka-role/users/confluent-kafka
+          action: create
+        - rid: dcos:mesos:master:reservation:role:confluent-kafka-role/users/confluent-kafka
+          action: create
+        - rid: dcos:mesos:master:volume:role:confluent-kafka-role/users/confluent-kafka
+          action: create
+        - rid: dcos:mesos:master:task:user:nobody/users/confluent-kafka
+          action: create
+        - rid: dcos:mesos:master:reservation:principal:confluent-kafka/users/confluent-kafka
+          action: delete
+        - rid: dcos:mesos:master:volume:principal:confluent-kafka/users/confluent-kafka
+          action: delete
+
+  - name: Create service account for Kafka
+    dcos_iam_serviceaccount:
+      sid: confluent-kafka
+      description: 'Kafka Service Account'
+      secret_path: confluent-kafka/secret
+      groups: 
+        - confluent-kafka-group
+      state: present
+
+  - name: Ensure Kafka is installed
+    dcos_package:
+      name: confluent-kafka
+      app_id: confluent-kafka
+      version: 2.3.0-4.0.0e
+      state: present
+      options:
+        {
+          'service': {
+            'name': 'confluent-kafka',
+            'service_account': 'confluent-kafka',
+            'service_account_secret': 'confluent-kafka/secret' 
+          },
+          'kafka': {
+            'kafka_zookeeper_uri': 'zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140'
+          }
+        }
+
+  - name: Ensure Kafka Schema Registry is installed
+    dcos_package:
+      name: confluent-schema-registry
+      app_id: schema-registry
+      version: 1.1.0-4.0.0
+      state: present
+      options:
+        {
+          'registry': {
+            'name': 'schema-registry',
+            'zookeeper_namespace': 'dcos-service-confluent-kafka/schema-registry'
+          },
+          'kafka': {
+            'zookeeper_connect': 'zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140',
+            'client_security_protocol': 'PLAINTEXT',
+            'kerberos_enabled': false
+          }
+        }

@@ -85,6 +85,7 @@ Below are some playbooks that make use of the different actions:
 * [Install Kubernetes on DC/OS Enterprise](plays/kubernetes.yml)
 * [Expose Kubectl Proxy via Edge-LB](plays/kubectl-edgelb.yml)
 * [Expose Kubectl Proxy via Marathon-LB](plays/kubectl-mlb.yml)
+* [Install Confluent-Kafka](plays/confluent-kafka.yml)
 
 ## Known limitations
 
