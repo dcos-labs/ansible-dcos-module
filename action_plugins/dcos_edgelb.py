@@ -29,24 +29,21 @@ except ImportError:
 def ensure_dcos_edgelb(instance_name):
     """Check whether the dcos[cli] edgelb extension is installed."""
 
-    try:
-        subprocess.check_output([
-            'dcos',
-            'edgelb',
-            '--name=' + instance_name,
-            'ping'
-            ], env=_dcos_path()).decode()
-    except:
-        display.vvv("dcos edgelb: not installed")
-        install_dcos_edgelb_cli()
-        subprocess.check_output([
-            'dcos',
-            'edgelb',
-            '--name=' + instance_name,
-            'ping'
-            ], env=_dcos_path()).decode()
-
-    display.vvv("dcos edgelb: all prerequisites seem to be in order")
+    for i in range(0,3):
+        while True:
+            try:
+                subprocess.check_output([
+                    'dcos',
+                    'edgelb',
+                    '--name=' + instance_name,
+                    'ping'
+                    ], env=_dcos_path()).decode()
+            except:
+                display.vvv("dcos edgelb: ping failed {} times".format(i))
+                install_dcos_edgelb_cli()
+                time.sleep(10)
+                continue
+            break
 
 def install_dcos_edgelb_cli():
     """Install DC/OS edgelb CLI"""
