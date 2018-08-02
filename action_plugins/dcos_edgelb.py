@@ -29,21 +29,24 @@ except ImportError:
 def ensure_dcos_edgelb(instance_name):
     """Check whether the dcos[cli] edgelb extension is installed."""
 
-    for i in range(0,3):
-        while True:
-            try:
-                subprocess.check_output([
+    tries = 3
+    for i in range(tries):
+        try:
+            subprocess.check_output([
                     'dcos',
                     'edgelb',
                     '--name=' + instance_name,
                     'ping'
                     ], env=_dcos_path()).decode()
-            except:
-                display.vvv("dcos edgelb: ping failed {} times".format(i))
+        except:
+            if i < tries - 1:
+                display.vvv("dcos edgelb: ping failed {} times".format(i+1))
                 install_dcos_edgelb_cli()
                 time.sleep(10)
                 continue
-            break
+            else:
+                raise AnsibleActionFail('Edge-LB: Pool cannot be configured because the API server is not reachable.')
+        break
 
 def install_dcos_edgelb_cli():
     """Install DC/OS edgelb CLI"""
