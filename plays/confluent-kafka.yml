@@ -14,17 +14,17 @@
       description: Permissions for ZooKeeper
       state: present
       permissions:
-        - rid: dcos:mesos:master:framework:role:confluent-zookeeper-role/users/confluent-zookeeper
+        - rid: dcos:mesos:master:framework:role:confluent-zookeeper-role
           action: create
-        - rid: dcos:mesos:master:reservation:role:confluent-zookeeper-role/users/confluent-zookeeper
+        - rid: dcos:mesos:master:reservation:role:confluent-zookeeper-role
           action: create
-        - rid: dcos:mesos:master:volume:role:confluent-zookeeper-role/users/confluent-zookeeper
+        - rid: dcos:mesos:master:volume:role:confluent-zookeeper-role
           action: create
-        - rid: dcos:mesos:master:task:user:nobody/users/confluent-zookeeper
+        - rid: dcos:mesos:master:task:user:nobody
           action: create
-        - rid: dcos:mesos:master:reservation:principal:zookeeper/users/confluent-zookeeper
+        - rid: dcos:mesos:master:reservation:principal:zookeeper
           action: delete
-        - rid: dcos:mesos:master:volume:principal:confluent-zookeeper/users/confluent-zookeeper
+        - rid: dcos:mesos:master:volume:principal:confluent-zookeeper
           action: delete
 
   - name: Create service account for ZooKeeper
@@ -57,17 +57,17 @@
       description: Permissions for Kafka
       state: present
       permissions:
-        - rid: dcos:mesos:master:framework:role:confluent-kafka-role/users/confluent-kafka
+        - rid: dcos:mesos:master:framework:role:confluent-kafka-role
           action: create
-        - rid: dcos:mesos:master:reservation:role:confluent-kafka-role/users/confluent-kafka
+        - rid: dcos:mesos:master:reservation:role:confluent-kafka-role
           action: create
-        - rid: dcos:mesos:master:volume:role:confluent-kafka-role/users/confluent-kafka
+        - rid: dcos:mesos:master:volume:role:confluent-kafka-role
           action: create
-        - rid: dcos:mesos:master:task:user:nobody/users/confluent-kafka
+        - rid: dcos:mesos:master:task:user:nobody
           action: create
-        - rid: dcos:mesos:master:reservation:principal:confluent-kafka/users/confluent-kafka
+        - rid: dcos:mesos:master:reservation:principal:confluent-kafka
           action: delete
-        - rid: dcos:mesos:master:volume:principal:confluent-kafka/users/confluent-kafka
+        - rid: dcos:mesos:master:volume:principal:confluent-kafka
           action: delete
 
   - name: Create service account for Kafka
@@ -110,7 +110,7 @@
             'zookeeper_namespace': 'dcos-service-confluent-kafka/schema-registry'
           },
           'kafka': {
-            'zookeeper_connect': 'zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140',
+            'zookeeper_connect': 'zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140',
             'client_security_protocol': 'PLAINTEXT',
             'kerberos_enabled': false
           }

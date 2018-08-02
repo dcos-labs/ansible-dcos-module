@@ -1,0 +1,105 @@
+---
+- name: Install Confluent-Kafka Load Balancer
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Install Edge-LB
+    include: edgelb.yml
+
+  - name: Assign permissions for pool confluent-kafka-lb to Edge-LB
+    dcos_iam_group:
+      gid: edgelb-group
+      description: Permissions for Edge-LB
+      state: present
+      permissions:
+        - rid: dcos:adminrouter:service:dcos-edgelb/pools/confluent-kafka-lb
+          action: full
+
+  - name: Create confluent-kafka-lb pool
+    dcos_edgelb:
+      pool_id: confluent-kafka-lb
+      state: present
+      options:
+        {
+          "apiVersion": "V2",
+          "role": "slave_public",
+          "name": "confluent-kafka-lb",
+          "count": 1,
+          "haproxy": {
+            "stats": {
+              "bindPort": 7090
+            },
+            "frontends": [
+              {
+                "bindPort": 1025,
+                "linkBackend": {
+                  "defaultBackend": "kafka-backend"
+                },
+                "protocol": "TCP"
+              }
+            ],
+            "backends": [
+              {
+                "name": "kafka-backend",
+                "protocol": "TCP",
+                "services": [
+                  {
+                    "endpoint": {
+                      "portName": "broker"
+                    },
+                    "mesos": {
+                      "taskNamePattern": "^kafka-.*$",
+                      "frameworkName": "confluent-kafka"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+
+## Test the connection
+
+  - name: Run Kafka Test
+    dcos_marathon:
+      app_id: kafka-test
+      state: present
+      options:
+        {
+          "id": "/kafka-test",
+          "user": "nobody",
+          "cmd": "while true; do echo 'Kafka-Test'; sleep 60; done",
+          "container": {
+            "type": "MESOS",
+            "docker": {
+              "image": "ches/kafka"
+            }
+          },
+          "cpus": 0.5,
+          "instances": 1,
+          "mem": 256
+        }
+
+# dcos package install confluent-kafka --cli --yes
+# dcos confluent-kafka topic create mytopic --replication=2 --partitions=4
+
+## Default
+
+# dcos task exec -it kafka-test /kafka/bin/kafka-console-consumer.sh --bootstrap-server broker.confluent-kafka.l4lb.thisdcos.directory:9092 --topic mytopic --from-beginning
+
+# dcos task exec -it kafka-test /kafka/bin/kafka-console-producer.sh --topic mytopic --broker-list kafka-0-broker.confluent-kafka.autoip.dcos.thisdcos.directory:1025,kafka-1-broker.confluent-kafka.autoip.dcos.thisdcos.directory:1025,kafka-2-broker.confluent-kafka.autoip.dcos.thisdcos.directory:1025
+
+## Edge-LB
+
+# dcos task exec -it kafka-test /kafka/bin/kafka-console-producer.sh --topic mytopic --broker-list edgelb-pool-0-server.dcos-edgelbpoolsconfluent-kafka-lb.autoip.dcos.thisdcos.directory:1025
+
+# dcos task exec -it kafka-test /kafka/bin/kafka-console-consumer.sh --bootstrap-server edgelb-pool-0-server.dcos-edgelbpoolsconfluent-kafka-lb.autoip.dcos.thisdcos.directory:1025 --topic mytopic --from-beginning
+
+# Test outside of the cluster e.g. bootstrap machine
+
+# docker run -it ches/kafka /kafka/bin/kafka-console-consumer.sh --bootstrap-server 10.0.0.103:1025 --topic mytopic --from-beginning

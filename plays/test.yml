@@ -5,34 +5,20 @@
   become: false
   tasks:
 
-  - name: Connect to cluster
-    dcos_connection:
-      url: https://172.17.0.3/
-      username: admin
-      password: admin
+  - name: Connect to the cluster
+    include: connection.yml
 
   - name: create a secret
     dcos_secret:
       path: test/secret
       value: "Hello World!"
 
-  - name: Ensure Spark is installed
-    dcos_package:
-      name: spark
-      app_id: namespace/spark
-      version: 2.3.0-2.2.1-2
-      state: present
-      options:
-        service:
-          UCR_containerizer: true
-          user: root
-
   - name: Run a Marathon application
     dcos_marathon:
       app_id: nginx
       state: present
       options:
-        cpu: 1
+        cpus: 0.1
         mem: 128
         instances: 1
         container:
@@ -46,3 +32,14 @@
               name: default
         networks:
           - mode: container/bridge
+
+  - name: Ensure Spark is installed
+    dcos_package:
+      name: spark
+      app_id: namespace/spark
+      version: 2.3.0-2.2.1-2
+      state: present
+      options:
+        service:
+          UCR_containerizer: true
+          user: root

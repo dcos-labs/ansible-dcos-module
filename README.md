@@ -34,7 +34,7 @@ Running Marathon applications:
         app_id: nginx
         state: present
         options:
-          cpu: 1
+          cpus: 0.1
           mem: 128
           instances: 1
           container:
@@ -86,6 +86,7 @@ Below are some playbooks that make use of the different actions:
 * [Expose Kubectl Proxy via Edge-LB](plays/kubectl-edgelb.yml)
 * [Expose Kubectl Proxy via Marathon-LB](plays/kubectl-mlb.yml)
 * [Install Confluent-Kafka](plays/confluent-kafka.yml)
+* [Expose Confluent-Kafka via Edge-LB](plays/confluent-kafka-edgelb.yml)
 
 ## Known limitations
 
