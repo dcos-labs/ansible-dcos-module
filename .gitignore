@@ -1,14 +1,47 @@
-# python
-venv/
-*.pyc
-__pycache__/
-
-# ansible
-hosts.yaml
-*.retry
-
-# ide
-.vscode/
+# common
+.DS_Store
+.master_ip
+.master_lb_ip
 
 # cli
 dcos
+kubectl
+kubectl-version
+
+# ansible
+.vault
+**/vault
+hosts.yaml
+group_vars/all
+*.retry
+/tmp
+
+# vagrant
+.vagrant
+
+# terraform
+.deploy
+.terraform
+/*.tf
+/*.tf.disabled
+*.tfstate
+*.tfstate.backup
+terraform.tfvars
+.terraform.tfstate.lock.info
+modules/
+desired_cluster_profile.tfvars.example
+desired_cluster_profile
+
+# terraform gce
+/account.json
+
+# ide
+.idea
+.vscode
+
+# keypair
+private-key.pem
+public-key.pem
+
+# python
+*.pyc
