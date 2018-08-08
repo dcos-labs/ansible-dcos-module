@@ -32,11 +32,11 @@
           "count": 1,
           "haproxy": {
             "stats": {
-              "bindPort": 7090
+              "bindPort": 19090
             },
             "frontends": [
               {
-                "bindPort": 1025,
+                "bindPort": 9092,
                 "linkBackend": {
                   "defaultBackend": "kafka-backend"
                 },
@@ -50,7 +50,7 @@
                 "services": [
                   {
                     "endpoint": {
-                      "portName": "broker"
+                      "portName": "broker-tls"
                     },
                     "mesos": {
                       "taskNamePattern": "^kafka-.*$",

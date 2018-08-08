@@ -22,7 +22,7 @@
           action: create
         - rid: dcos:mesos:master:task:user:nobody
           action: create
-        - rid: dcos:mesos:master:reservation:principal:zookeeper
+        - rid: dcos:mesos:master:reservation:principal:confluent-zookeeper
           action: delete
         - rid: dcos:mesos:master:volume:principal:confluent-zookeeper
           action: delete
@@ -69,7 +69,15 @@
           action: delete
         - rid: dcos:mesos:master:volume:principal:confluent-kafka
           action: delete
-
+        - rid: dcos:secrets:default:/confluent-kafka/*
+          action: full
+        - rid: dcos:secrets:list:default:/confluent-kafka
+          action: read
+        - rid: dcos:adminrouter:ops:ca:rw
+          action: full
+        - rid: dcos:adminrouter:ops:ca:ro
+          action: full
+  
   - name: Create service account for Kafka
     dcos_iam_serviceaccount:
       sid: confluent-kafka
@@ -90,7 +98,18 @@
           'service': {
             'name': 'confluent-kafka',
             'service_account': 'confluent-kafka',
-            'service_account_secret': 'confluent-kafka/secret' 
+            'service_account_secret': 'confluent-kafka/secret',
+            "security": {
+              "ssl_authentication": {
+                "enabled": true
+              },
+              "transport_encryption": {
+                "enabled": true
+              }
+            }
+          },
+          "brokers": {
+            "port_tls": 9092
           },
           'kafka': {
             'kafka_zookeeper_uri': 'zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140'
@@ -105,13 +124,13 @@
       state: present
       options:
         {
-          'registry': {
-            'name': 'schema-registry',
-            'zookeeper_namespace': 'dcos-service-confluent-kafka/schema-registry'
+          "registry": {
+            "name": "schema-registry",
+            "zookeeper_namespace": "dcos-service-confluent-kafka/schema-registry",
+            "listener_protocol": "http"
           },
-          'kafka': {
-            'zookeeper_connect': 'zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140',
-            'client_security_protocol': 'PLAINTEXT',
-            'kerberos_enabled': false
+          "kafka": {
+            "zookeeper_connect": "zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140",
+            "client_security_protocol": "SSL"
           }
         }
