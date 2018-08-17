@@ -26,20 +26,20 @@ def ensure_dcos():
     except subprocess.CalledProcessError:
         raise AnsibleActionFail("DC/OS CLI is not installed!")
 
-    raw_version = ''
-    for line in r.strip().split('\n'):
-        display.vvv(line)
-        k, v = line.split('=')
-        if k == 'dcoscli.version':
-            raw_version = v
+    # raw_version = ''
+    # for line in r.strip().split('\n'):
+    #     display.vvv(line)
+    #     k, v = line.split('=')
+    #     if k == 'dcoscli.version':
+    #         raw_version = v
 
-    v = _version(raw_version)
-    if v < (0, 5, 0):
-        raise AnsibleActionFail(
-            "DC/OS CLI 0.5.x is required, found {}".format(v))
-    if v >= (0, 7, 0):
-        raise AnsibleActionFail(
-            "DC/OS CLI version > 0.7.x detected, may not work")
+    # v = _version(raw_version)
+    # if v < (0, 5, 0):
+    #     raise AnsibleActionFail(
+    #         "DC/OS CLI 0.5.x is required, found {}".format(v))
+    # if v >= (0, 7, 0):
+    #     raise AnsibleActionFail(
+    #         "DC/OS CLI version > 0.7.x detected, may not work")
     display.vvv("dcos: all prerequisites seem to be in order")
 
 def ensure_dcos_security():
@@ -47,16 +47,16 @@ def ensure_dcos_security():
 
     raw_version = ''
     try:
-        r = subprocess.check_output(['dcos', 'security', '--version'], env=_dcos_path()).decode()
+        r = subprocess.check_output(['dcos', 'security', '--info'], env=_dcos_path()).decode()
     except:
         display.vvv("dcos security: not installed")
         install_dcos_security_cli()
-        r = subprocess.check_output(['dcos', 'security', '--version'], env=_dcos_path()).decode()
+        r = subprocess.check_output(['dcos', 'security', '--info'], env=_dcos_path()).decode()
 
-    v = _version(r)
-    if v < (1, 2, 0):
-        raise AnsibleActionFail(
-            "DC/OS Security CLI 1.2.x is required, found {}".format(v))
+    # v = _version(r)
+    # if v < (1, 2, 0):
+    #     raise AnsibleActionFail(
+    #         "DC/OS Security CLI 1.2.x is required, found {}".format(v))
 
     display.vvv("dcos security: all prerequisites seem to be in order")
 

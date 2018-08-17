@@ -15,6 +15,7 @@ hosts.yaml
 group_vars/all
 *.retry
 /tmp
+*.test.yml
 
 # vagrant
 .vagrant

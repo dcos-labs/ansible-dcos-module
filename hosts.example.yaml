@@ -4,5 +4,4 @@ all:
     dcos_url: 'https://172.17.0.3/'
     dcos_username: 'admin'
     dcos_password: 'admin'
-    dcos_version: 1.11.3
     dcos_cli_enabled: true
