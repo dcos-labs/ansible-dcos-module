@@ -68,19 +68,19 @@
     dcos_package:
       name: kubernetes
       app_id: kubernetes
-      version: 1.2.0-1.10.5
+      version: 1.2.2-1.10.7
       state: present
       options:
         {
-          'service': {
-            'name': 'kubernetes',
-            'service_account': 'kubernetes',
-            'service_account_secret': 'kubernetes/secret' 
+          "service": {
+            "name": "kubernetes",
+            "service_account": "kubernetes",
+            "service_account_secret": "kubernetes/secret" 
           },
-          'kubernetes': {
-            'high_availability': true,
-            'node_count': 3,
-            'authorization_mode': 'RBAC',
-            'public_node_count': 1
+          "kubernetes": {
+            "high_availability": true,
+            "node_count": 3,
+            "authorization_mode": "RBAC",
+            "public_node_count": 1
           }
         }
