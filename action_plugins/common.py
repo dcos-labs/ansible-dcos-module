@@ -47,16 +47,16 @@ def ensure_dcos_security():
 
     raw_version = ''
     try:
-        r = subprocess.check_output(['dcos', 'security', '--info'], env=_dcos_path()).decode()
+        r = subprocess.check_output(['dcos', 'security', '--version'], env=_dcos_path()).decode()
     except:
         display.vvv("dcos security: not installed")
         install_dcos_security_cli()
-        r = subprocess.check_output(['dcos', 'security', '--info'], env=_dcos_path()).decode()
+        r = subprocess.check_output(['dcos', 'security', '--version'], env=_dcos_path()).decode()
 
-    # v = _version(r)
-    # if v < (1, 2, 0):
-    #     raise AnsibleActionFail(
-    #         "DC/OS Security CLI 1.2.x is required, found {}".format(v))
+    v = _version(r)
+    if v < (1, 2, 0):
+        raise AnsibleActionFail(
+            "DC/OS Security CLI 1.2.x is required, found {}".format(v))
 
     display.vvv("dcos security: all prerequisites seem to be in order")
 
