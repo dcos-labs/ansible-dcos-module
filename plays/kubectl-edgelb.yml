@@ -29,21 +29,19 @@
           "apiVersion": "V2",
           "name": "kubectl-proxy",
           "count": 1,
-          "autoCertificate": true,
           "haproxy": {
-            "frontends": [{
-              "bindPort": 6443,
-              "protocol": "HTTPS",
-              "certificates": [
-                "$AUTOCERT"
-              ],
-              "linkBackend": {
-                "defaultBackend": "kubernetes-apiserver"
+            "frontends": [
+              {
+                "bindPort": 8181,
+                "protocol": "TCP",
+                "linkBackend": {
+                  "defaultBackend": "kubernetes-apiserver"
+                }
               }
-            }],
+            ],
             "backends": [{
               "name": "kubernetes-apiserver",
-              "protocol": "HTTPS",
+              "protocol": "TCP",
               "services": [{
                 "mesos": {
                   "frameworkName": "kubernetes",
