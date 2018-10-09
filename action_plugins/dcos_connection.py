@@ -23,6 +23,7 @@ from ansible.errors import AnsibleActionFail
 
 # to prevent duplicating code, make sure we can import common stuff
 sys.path.append(os.getcwd())
+sys.path.append(os.getcwd() + '/resources/ansible-dcos-module')
 from action_plugins.common import ensure_dcos, run_command, _dcos_path
 
 try:
