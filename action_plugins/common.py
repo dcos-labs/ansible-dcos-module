@@ -15,6 +15,7 @@ def _version(v):
 def _dcos_path():
     dcos_path = os.environ.copy()
     dcos_path["PATH"] = os.getcwd() + ':' + dcos_path["PATH"]
+    dcos_path["DCOS_CLI_EXPERIMENTAL_AUTOINSTALL_PLUGINS"] = 'true'
     display.vvv('dcos cli: path environment variable: {}'.format(dcos_path["PATH"]) )
     return dcos_path
 
