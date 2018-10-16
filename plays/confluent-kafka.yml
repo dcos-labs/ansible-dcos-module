@@ -134,3 +134,22 @@
             "client_security_protocol": "SSL"
           }
         }
+
+  - name: Ensure Kafka Schema Registry is installed
+    dcos_package:
+      name: confluent-control-center
+      app_id: control-center
+      version: 1.1.1-4.1.1
+      state: present
+      options:
+        {
+          "control-center": {
+            "name": "control-center",
+            "listener_protocol": "http"
+          },
+          "kafka": {
+            "bootstrap_servers": "broker-tls.confluent-kafka.l4lb.thisdcos.directory:9093",
+            "zookeeper_connect": "zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140",
+            "client_security_protocol": "SSL"
+          }
+        }
