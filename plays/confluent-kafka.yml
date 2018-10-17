@@ -135,7 +135,7 @@
           }
         }
 
-  - name: Ensure Kafka Schema Registry is installed
+  - name: Ensure Confluent Control Center is installed
     dcos_package:
       name: confluent-control-center
       app_id: control-center
