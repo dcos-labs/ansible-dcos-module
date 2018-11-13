@@ -44,8 +44,8 @@
               "protocol": "TCP",
               "services": [{
                 "mesos": {
-                  "frameworkName": "kubernetes",
-                  "taskNamePattern": "kube-apiserver"
+                  "frameworkName": "kubernetes-cluster",
+                  "taskNamePattern": "kube-control-plane"
                 },
                 "endpoint": {
                   "portName": "apiserver"

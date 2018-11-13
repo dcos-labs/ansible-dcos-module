@@ -8,79 +8,115 @@
   - name: Connect to the cluster
     include: connection.yml
 
-  - name: Create a group for Kubernetes
+  - name: Create a group for Mesosphere Kubernetes Engine
     dcos_iam_group:
       gid: kubernetes-group
+      description: Permissions for Mesosphere Kubernetes Engine
+      state: present
+      permissions:
+        - rid: dcos:mesos:master:reservation:role:kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:framework:role:kubernetes-role
+          action: create
+        - rid: dcos:mesos:master:task:user:nobody
+          action: create
+
+  - name: Create service account for Kubernetes Cluster
+    dcos_iam_serviceaccount:
+      sid: kubernetes
+      description: 'Kubernetes Cluster Service Account'
+      secret_path: kubernetes/secret
+      groups: 
+        - kubernetes-group
+      state: present
+
+  - name: Ensure Mesosphere Kubernetes Engine is installed
+    dcos_package:
+      name: kubernetes
+      app_id: kubernetes
+      version: 2.0.0-1.12.1
+      state: present
+      options:
+        {
+          "service": {
+            "service_account": "kubernetes",
+            "service_account_secret": "kubernetes/secret"
+          }
+        }
+
+  - name: Create a group for Kubernetes Cluster
+    dcos_iam_group:
+      gid: kubernetes-cluster-group
       description: Permissions for Kubernetes
       state: present
       permissions:
         - rid: dcos:mesos:master:framework:role:*
           action: read
-        - rid: dcos:mesos:master:framework:role:kubernetes-role
+        - rid: dcos:mesos:master:framework:role:kubernetes-cluster-role
           action: create
         - rid: dcos:mesos:master:task:user:root
           action: create
         - rid: dcos:mesos:agent:task:user:root
           action: create
-        - rid: dcos:mesos:master:reservation:role:kubernetes-role
+        - rid: dcos:mesos:master:reservation:role:kubernetes-cluster-role
           action: create
-        - rid: dcos:mesos:master:reservation:principal:kubernetes
+        - rid: dcos:mesos:master:reservation:principal:kubernetes-cluster
           action: delete
-        - rid: dcos:mesos:master:volume:role:kubernetes-role
+        - rid: dcos:mesos:master:volume:role:kubernetes-cluster-role
           action: create
-        - rid: dcos:mesos:master:volume:principal:kubernetes
+        - rid: dcos:mesos:master:volume:principal:kubernetes-cluster
           action: delete
         - rid: dcos:service:marathon:marathon:services:/
           action: create
         - rid: dcos:service:marathon:marathon:services:/
           action: delete
-        - rid: dcos:secrets:default:/kubernetes/*
+        - rid: dcos:secrets:default:/kubernetes-cluster/*
           action: full
-        - rid: dcos:secrets:list:default:/kubernetes
+        - rid: dcos:secrets:list:default:/kubernetes-cluster
           action: read
         - rid: dcos:adminrouter:ops:ca:rw
           action: full
         - rid: dcos:adminrouter:ops:ca:ro
           action: full
-        - rid: dcos:mesos:master:framework:role:slave_public/kubernetes-role
+        - rid: dcos:mesos:master:framework:role:slave_public/kubernetes-cluster-role
           action: create
-        - rid: dcos:mesos:master:framework:role:slave_public/kubernetes-role
+        - rid: dcos:mesos:master:framework:role:slave_public/kubernetes-cluster-role
           action: read
-        - rid: dcos:mesos:master:reservation:role:slave_public/kubernetes-role
+        - rid: dcos:mesos:master:reservation:role:slave_public/kubernetes-cluster-role
           action: create
-        - rid: dcos:mesos:master:volume:role:slave_public/kubernetes-role 
+        - rid: dcos:mesos:master:volume:role:slave_public/kubernetes-cluster-role 
           action: create
         - rid: dcos:mesos:master:framework:role:slave_public
           action: read
         - rid: dcos:mesos:agent:framework:role:slave_public
           action: read
 
-  - name: Create service account for Kubernetes
+  - name: Create service account for Kubernetes Cluster
     dcos_iam_serviceaccount:
-      sid: kubernetes
-      description: 'Kubernetes Service Account'
-      secret_path: kubernetes/secret
+      sid: kubernetes-cluster
+      description: 'Kubernetes Cluster Service Account'
+      secret_path: kubernetes-cluster/secret
       groups: 
-        - kubernetes-group
+        - kubernetes-cluster-group
       state: present
 
-  - name: Ensure Kubernetes is installed
+  - name: Ensure Kubernetes Cluster is installed
     dcos_package:
-      name: kubernetes
-      app_id: kubernetes
-      version: 1.2.2-1.10.7
+      name: kubernetes-cluster
+      app_id: kubernetes-cluster
+      version: 2.0.1-1.12.2
       state: present
       options:
         {
           "service": {
-            "name": "kubernetes",
-            "service_account": "kubernetes",
-            "service_account_secret": "kubernetes/secret" 
+            "name": "kubernetes-cluster",
+            "service_account": "kubernetes-cluster",
+            "service_account_secret": "kubernetes-cluster/secret" 
           },
           "kubernetes": {
-            "high_availability": true,
-            "node_count": 3,
             "authorization_mode": "RBAC",
+            "high_availability": true,
+            "private_node_count": 3,
             "public_node_count": 1
           }
         }
