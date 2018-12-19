@@ -40,16 +40,16 @@
     dcos_package:
       name: confluent-zookeeper
       app_id: confluent-zookeeper
-      version: 2.2.0-4.0.0e
+      version: 2.4.0-4.0.0e
       state: present
       options:
         {
-          'service': {
-            'name': 'confluent-zookeeper',
-            'service_account': 'confluent-zookeeper',
-            'service_account_secret': 'confluent-zookeeper/secret' 
+          "service": {
+            "name": "confluent-zookeeper",
+            "service_account": "confluent-zookeeper",
+            "service_account_secret": "confluent-zookeeper/secret" 
           }
-        }
+      }
 
   - name: Create a group for Kafka
     dcos_iam_group:
@@ -91,7 +91,7 @@
     dcos_package:
       name: confluent-kafka
       app_id: confluent-kafka
-      version: 2.3.0-4.0.0e
+      version: 2.4.0-4.1.1
       state: present
       options:
         {

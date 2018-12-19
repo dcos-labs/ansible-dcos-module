@@ -34,7 +34,7 @@
     dcos_package:
       name: kubernetes
       app_id: kubernetes
-      version: 2.0.0-1.12.1
+      version: 2.1.0-1.12.3
       state: present
       options:
         {
@@ -104,7 +104,7 @@
     dcos_package:
       name: kubernetes-cluster
       app_id: kubernetes-cluster
-      version: 2.0.1-1.12.2
+      version: 2.1.0-1.12.3
       state: present
       options:
         {
@@ -114,7 +114,7 @@
             "service_account_secret": "kubernetes-cluster/secret" 
           },
           "kubernetes": {
-            "authorization_mode": "RBAC",
+            "authorization_mode": "AlwaysAllow",
             "high_availability": true,
             "private_node_count": 3,
             "public_node_count": 1
