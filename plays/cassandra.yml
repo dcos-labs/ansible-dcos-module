@@ -1,0 +1,65 @@
+---
+- name: Install Cassandra
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Create a group for cassandra
+    dcos_iam_group:
+      gid: cassandra-group
+      description: Permissions for cassandra
+      state: present
+      permissions:
+        - rid: dcos:mesos:master:framework:role:cassandra-role
+          action: create
+        - rid: dcos:mesos:master:reservation:role:cassandra-role
+          action: create
+        - rid: dcos:mesos:master:volume:role:cassandra-role
+          action: create
+        - rid: dcos:mesos:master:task:user:nobody
+          action: create
+        - rid: dcos:mesos:master:reservation:principal:cassandra
+          action: delete
+        - rid: dcos:mesos:master:volume:principal:cassandra
+          action: delete
+        - rid: dcos:secrets:default:/cassandra/*
+          action: full
+        - rid: dcos:secrets:list:default:/cassandra
+          action: read
+        - rid: dcos:adminrouter:ops:ca:rw
+          action: full
+        - rid: dcos:adminrouter:ops:ca:ro
+          action: full
+  - name: Create service account for cassandra
+    dcos_iam_serviceaccount:
+      sid: cassandra
+      description: 'cassandra Service Account'
+      secret_path: cassandra/secret
+      groups: 
+        - cassandra-group
+      state: present
+
+  - name: Ensure cassandra is installed
+    dcos_package:
+      name: cassandra
+      app_id: cassandra
+      version: 2.4.0-3.0.16
+      state: present
+      options:
+        {
+          "service": {
+            "name": "cassandra",
+            "service_account": "cassandra",
+            "service_account_secret": "cassandra/secret", 
+            "security": {
+                "transport_encryption": {
+                    "enabled": true, 
+                    "allow_plaintext": true
+                }
+            }
+          }
+      }

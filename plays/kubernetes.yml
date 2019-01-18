@@ -114,7 +114,7 @@
             "service_account_secret": "kubernetes-cluster/secret" 
           },
           "kubernetes": {
-            "authorization_mode": "AlwaysAllow",
+            "authorization_mode": "RBAC",
             "high_availability": true,
             "private_node_count": 3,
             "public_node_count": 1
