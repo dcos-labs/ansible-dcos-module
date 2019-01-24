@@ -1,0 +1,64 @@
+---
+- name: Install DC/OS Package Registry
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Enables Bootstrap Registry
+    dcos_package_repo:
+      name: Bootstrap Registry
+      url: https://registry.component.thisdcos.directory/repo
+      index: 0
+      state: present
+
+  - name: Create a group for Package Registry
+    dcos_iam_group:
+      gid: registry-account-group
+      description: Permissions for Package Registry
+      state: present
+      permissions:
+        - rid: dcos:adminrouter:ops:ca:rw
+          action: full
+
+  - name: Create service account for Package Registry
+    dcos_iam_serviceaccount:
+      sid: registry-account
+      description: 'Package Registry Service Account'
+      secret_path: registry/secret
+      groups: 
+        - registry-account-group
+      state: present
+
+  - name: Ensure Package Registry is installed
+    dcos_package:
+      name: package-registry
+      app_id: registry
+      version: 0.2.1-0.2.1-507-5b2ec60
+      state: present
+      options:
+        {
+          "registry":{
+            "service-account-secret-path": "registry/secret"
+          }
+        }
+
+  - name: Wait for Package Registry to come up
+    command: dcos registry describe --package-name test --package-version 0
+    register: command_result
+    failed_when: "command_result.stderr != 'Version [0] of package [test] not found'"
+    until: "command_result.stderr == 'Version [0] of package [test] not found'"
+    retries: 60
+    delay: 1
+
+  - name: Enables Package Registry
+    dcos_package_repo:
+      name: Package Registry
+      url: https://registry.marathon.l4lb.thisdcos.directory/repo
+      index: 0
+      state: present
+
+
