@@ -94,7 +94,7 @@ def pod_update(pod_id, options):
         from subprocess import Popen, PIPE
 
         p = Popen(cmd, env=_dcos_path(), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = p.communicate(json.dumps(options))
+        stdout, stderr = p.communicate(json.dumps(options).encode())
 
         display.vvv("stdout {}".format(stdout))
         display.vvv("stderr {}".format(stderr))
