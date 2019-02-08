@@ -1,0 +1,82 @@
+---
+- name: Install DC/OS Monitoring
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Create a group for dcos-monitoring
+    dcos_iam_group:
+      gid: dcos-monitoring-group
+      description: Permissions for dcos-monitoring
+      state: present
+      permissions:
+        - rid: dcos:adminrouter:ops:ca:rw
+          action: full
+        - rid: dcos:adminrouter:ops:ca:ro
+          action: full
+        - rid: dcos:mesos:agent:framework:role:slave_public
+          action: read
+        - rid: dcos:mesos:master:framework:role:dcos-monitoring-role
+          action: create
+        - rid: dcos:mesos:master:framework:role:slave_public
+          action:  read
+        - rid: dcos:mesos:master:framework:role:slave_public/dcos-monitoring-role
+          action: read
+        - rid: dcos:mesos:master:framework:role:slave_public/dcos-monitoring-role
+          action: create
+        - rid: dcos:mesos:master:reservation:principal:dcos-monitoring-principal
+          action: delete
+        - rid: dcos:mesos:master:reservation:role:dcos-monitoring-role
+          action: create
+        - rid: dcos:mesos:master:reservation:role:slave_public/dcos-monitoring-role
+          action: create
+        - rid: dcos:mesos:master:task:user:nobody
+          action: create
+        - rid: dcos:mesos:master:volume:principal:dcos-monitoring-principal
+          action: delete
+        - rid: dcos:mesos:master:volume:role:dcos-monitoring-role
+          action: create
+        - rid: dcos:mesos:master:volume:role:slave_public/dcos-monitoring-role
+          action: create
+        - rid: dcos:secrets:default:/dcos-monitoring/*
+          action: full
+        - rid: dcos:secrets:list:default:/dcos-monitoring
+          action:  read
+
+
+  - name: Create service account for dcos-monitoring
+    dcos_iam_serviceaccount:
+      sid: dcos-monitoring-principal
+      description: 'dcos-monitoring Service Account'
+      secret_path: dcos-monitoring/secret
+      groups: 
+        - dcos-monitoring-group
+      state: present
+
+  - name: Ensure dcos-monitoring is installed
+    dcos_package:
+      name: beta-dcos-monitoring
+      app_id: dcos-monitoring
+      version: v0.4.2-beta
+      state: present
+      options:
+        {
+          "service": {
+            "name": "dcos-monitoring",
+            "service_account": "dcos-monitoring-principal",
+            "service_account_secret": "dcos-monitoring/secret"
+          },
+          "grafana": {
+            "ui_port": 3000,
+            "public": false,
+            "dashboard_config_repository": {
+              "url": "https://github.com/dcos-labs/professional-services",
+              "path": "/docs/grafana-dashboards-dcos/dcos-1.12/"
+            },
+            "default_dashboards": true
+          }  
+      }

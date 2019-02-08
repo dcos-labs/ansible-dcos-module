@@ -87,6 +87,8 @@ Below are some playbooks that make use of the different actions:
 * [Expose Kubectl Proxy via Marathon-LB](plays/kubectl-mlb.yml)
 * [Install Confluent-Kafka](plays/confluent-kafka.yml)
 * [Expose Confluent-Kafka via Edge-LB](plays/confluent-kafka-edgelb.yml)
+* [Install DC/OS Monitoring](plays/monitoring.yml)
+* [Install DC/OS Package Registry](plays/package-registry.yml)
 
 ## Known limitations
 
