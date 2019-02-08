@@ -34,7 +34,7 @@
     dcos_package:
       name: kubernetes
       app_id: kubernetes
-      version: 2.1.0-1.12.3
+      version: 2.2.0-1.13.3
       state: present
       options:
         {
@@ -104,19 +104,24 @@
     dcos_package:
       name: kubernetes-cluster
       app_id: kubernetes-cluster
-      version: 2.1.0-1.12.3
+      version: 2.2.0-1.13.3
       state: present
       options:
         {
           "service": {
             "name": "kubernetes-cluster",
             "service_account": "kubernetes-cluster",
-            "service_account_secret": "kubernetes-cluster/secret" 
+            "service_account_secret": "kubernetes-cluster/secret",
+            "use_agent_docker_certs": true
           },
           "kubernetes": {
-            "authorization_mode": "RBAC",
-            "high_availability": true,
+            "authorization_mode": "AlwaysAllow", # AlwaysAllow or RBAC
+            "high_availability": false,
             "private_node_count": 3,
-            "public_node_count": 1
+            "public_node_count": 0,
+            "private_reserved_resources": {
+              "kube_cpus": 2,
+              "kube_mem": 5120
+            }
           }
         }

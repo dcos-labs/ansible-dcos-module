@@ -47,7 +47,7 @@
   dcos_package:
     name: edgelb
     app_id: dcos-edgelb/api
-    version: v1.2.2
+    version: v1.3.0
     state: present
     options:
       {

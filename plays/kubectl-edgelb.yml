@@ -28,6 +28,7 @@
         {
           "apiVersion": "V2",
           "name": "kubectl-proxy",
+          "cpus": 0.7,
           "count": 1,
           "haproxy": {
             "frontends": [
