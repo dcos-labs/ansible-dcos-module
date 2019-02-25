@@ -115,7 +115,8 @@
             "use_agent_docker_certs": true
           },
           "kubernetes": {
-            "authorization_mode": "AlwaysAllow", # AlwaysAllow or RBAC
+            "authorization_mode": "RBAC", # AlwaysAllow or RBAC
+            "dcos_token_authentication": true,
             "high_availability": false,
             "private_node_count": 3,
             "public_node_count": 0,
