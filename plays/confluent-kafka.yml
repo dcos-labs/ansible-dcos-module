@@ -116,7 +116,26 @@
           }
         }
 
-  - name: Ensure Kafka Schema Registry is installed
+  - name: Ensure Confluent Control Center is installed
+    dcos_package:
+      name: confluent-control-center
+      app_id: control-center
+      version: 1.1.1-4.1.1
+      state: present
+      options:
+        {
+          "control-center": {
+            "name": "control-center",
+            "listener_protocol": "http"
+          },
+          "kafka": {
+            "bootstrap_servers": "broker-tls.confluent-kafka.l4lb.thisdcos.directory:9093",
+            "zookeeper_connect": "zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140",
+            "client_security_protocol": "SSL"
+          }
+        }
+
+  - name: Ensure Confluent Schema Registry is installed
     dcos_package:
       name: confluent-schema-registry
       app_id: schema-registry
@@ -135,21 +154,44 @@
           }
         }
 
-  - name: Ensure Confluent Control Center is installed
+  - name: Ensure Confluent Connect is installed
     dcos_package:
-      name: confluent-control-center
-      app_id: control-center
+      name: confluent-connect
+      app_id: connect
       version: 1.1.1-4.1.1
       state: present
       options:
         {
-          "control-center": {
-            "name": "control-center",
-            "listener_protocol": "http"
+          "connect": {
+            "name": "connect"
           },
           "kafka": {
             "bootstrap_servers": "broker-tls.confluent-kafka.l4lb.thisdcos.directory:9093",
             "zookeeper_connect": "zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140",
             "client_security_protocol": "SSL"
+          },
+          "schema-registry": {
+            "url": "http://schema-registry.marathon.l4lb.thisdcos.directory:8081"
+          }
+        }
+
+  - name: Ensure Confluent REST Proxy is installed
+    dcos_package:
+      name: confluent-rest-proxy
+      app_id: rest-proxy
+      version: 1.1.1-4.1.1
+      state: present
+      options:
+        {
+          "rest-proxy": {
+            "name": "rest-proxy"
+          },
+          "kafka": {
+            "bootstrap_servers": "broker-tls.confluent-kafka.l4lb.thisdcos.directory:9093",
+            "zookeeper_connect": "zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140",
+            "client_security_protocol": "SSL"
+          },
+          "schema-registry": {
+            "url": "http://schema-registry.marathon.l4lb.thisdcos.directory:8081"
           }
         }
