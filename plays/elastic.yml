@@ -1,0 +1,85 @@
+---
+- name: Install Elastic
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Create a group for Elastic
+    dcos_iam_group:
+      gid: elastic-group
+      description: Permissions for Elastic
+      state: present
+      permissions:
+        - rid: dcos:mesos:master:framework:role:elastic-role
+          action: create
+        - rid: dcos:mesos:master:reservation:role:elastic-role
+          action: create
+        - rid: dcos:mesos:master:volume:role:elastic-role
+          action: create
+        - rid: dcos:mesos:master:task:user:nobody
+          action: create
+        - rid: dcos:mesos:master:reservation:principal:elastic
+          action: delete
+        - rid: dcos:mesos:master:volume:principal:elastic
+          action: delete
+        - rid: dcos:secrets:default:/elastic/*
+          action: full
+        - rid: dcos:secrets:list:default:/elastic
+          action: read
+        - rid: dcos:adminrouter:ops:ca:rw
+          action: full
+        - rid: dcos:adminrouter:ops:ca:ro
+          action: full
+  
+  - name: Create service account for Elastic
+    dcos_iam_serviceaccount:
+      sid: elastic
+      description: 'Elastic Service Account'
+      secret_path: elastic/secret
+      groups: 
+        - elastic-group
+      state: present
+
+  - name: Ensure Elastic is installed
+    dcos_package:
+      name: elastic
+      app_id: elastic
+      version: 2.5.0-6.3.2
+      state: present
+      options:
+        {
+            "service": {
+                "service_account": "elastic",
+                "service_account_secret": "elastic/secret",
+                "security": {
+                    "transport_encryption": {
+                        "enabled": true
+                    }
+                }
+            }, 
+            "elasticsearch": {
+              "xpack_enabled": true
+            },
+            "ingest_nodes": {
+              "count": 1
+            }  
+        }
+
+  - name: Ensure Kibana is installed
+    dcos_package:
+      name: kibana
+      app_id: kibana
+      version: 2.5.0-6.3.2
+      state: present
+      options:
+        {
+            "kibana": {
+                "xpack_enabled": true,
+                "elasticsearch_tls": true,
+                "elasticsearch_url": "https://coordinator.elastic.l4lb.thisdcos.directory:9200"
+            }
+        }
