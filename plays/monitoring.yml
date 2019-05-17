@@ -61,7 +61,7 @@
     dcos_package:
       name: beta-dcos-monitoring
       app_id: dcos-monitoring
-      version: v0.4.3-beta
+      version: v0.5.0-beta
       state: present
       options:
         {
