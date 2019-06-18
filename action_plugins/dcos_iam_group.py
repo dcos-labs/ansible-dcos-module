@@ -50,14 +50,10 @@ def get_group_state(gid):
     display.vvv('looking for gid {}'.format(gid))
 
     state = 'absent'
-    for g in groups:
-        try:
-            if gid in g:
-                state = 'present'
-                display.vvv('found app: {}'.format(gid))
+    if gid in groups:
+        state = 'present'
+        display.vvv('found gid: {}'.format(gid))
 
-        except KeyError:
-         continue
     return state
 
 def group_create(gid, description):
