@@ -54,14 +54,10 @@ def get_service_account_state(sid):
     display.vvv('looking for sid {}'.format(sid))
 
     state = 'absent'
-    for g in service_accounts:
-        try:
-            if sid in g:
-                state = 'present'
-                display.vvv('found sid: {}'.format(sid))
+    if sid in service_accounts:
+        state = 'present'
+        display.vvv('found sid: {}'.format(sid))
 
-        except KeyError:
-         continue
     return state
 
 def service_account_create(sid, secret_path, store, description):

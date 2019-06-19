@@ -50,14 +50,10 @@ def get_user_state(uid):
     display.vvv('looking for uid {}'.format(uid))
 
     state = 'absent'
-    for g in users:
-        try:
-            if uid in g:
-                state = 'present'
-                display.vvv('found uid: {}'.format(uid))
+    if uid in users:
+        state = 'present'
+        display.vvv('found uid: {}'.format(uid))
 
-        except KeyError:
-         continue
     return state
 
 def user_create(uid, password, description):
