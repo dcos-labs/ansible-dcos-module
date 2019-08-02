@@ -1,0 +1,51 @@
+---
+- name: Install Jenkins
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Create a group for jenkins
+    dcos_iam_group:
+      gid: jenkins-group
+      description: Permissions for jenkins
+      state: present
+      permissions:
+        - rid: dcos:mesos:agent:framework:role:*
+          action: create
+        - rid: dcos:mesos:master:task:user:nobody
+          action: create
+        - rid: dcos:secrets:default:/jenkins/*
+          action: full
+        - rid: dcos:secrets:list:default:/jenkins
+          action: read
+
+  - name: Create service account for jenkins
+    dcos_iam_serviceaccount:
+      sid: jenkins-principal
+      description: 'jenkins Service Account'
+      secret_path: jenkins/service-account-secret
+      groups: 
+        - jenkins-group
+      state: present
+
+  - name: Ensure jenkins is installed
+    dcos_package:
+      name: jenkins
+      app_id: jenkins
+      version: 3.5.4-2.150.1
+      state: present
+      options:
+        {
+          "service": {
+            "name": "jenkins",
+            "user": "nobody"
+          },
+          "security": {
+            "secret-name": "jenkins/service-account-secret",
+            "strict-mode": true
+          }
+        }

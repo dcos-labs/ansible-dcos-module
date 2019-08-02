@@ -5,6 +5,10 @@
     description: Permissions for Edge-LB
     state: present
     permissions:
+      - rid: dcos:adminrouter:ops:ca:rw
+        action: full
+      - rid: dcos:adminrouter:ops:ca:ro
+        action: full
       - rid: dcos:adminrouter:service:marathon
         action: full
       - rid: dcos:adminrouter:package
@@ -33,6 +37,10 @@
         action: full
       - rid: dcos:mesos:master:task:app_id
         action: full
+      - rid: dcos:secrets:default:/dcos-edgelb/*
+        action: full
+      - rid: dcos:secrets:list:default:/dcos-edgelb/*
+        action: full
 
 - name: Create service account for Edge-LB
   dcos_iam_serviceaccount:
@@ -47,7 +55,7 @@
   dcos_package:
     name: edgelb
     app_id: dcos-edgelb/api
-    version: v1.3.0
+    version: v1.4.0
     state: present
     options:
       {

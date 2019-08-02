@@ -47,14 +47,14 @@
     dcos_package:
       name: cassandra
       app_id: cassandra
-      version: 2.4.0-3.0.16
+      version: 2.6.0-3.11.4
       state: present
       options:
         {
           "service": {
             "name": "cassandra",
             "service_account": "cassandra",
-            "service_account_secret": "cassandra/secret", 
+            "service_account_secret": "cassandra/secret",
             "security": {
                 "transport_encryption": {
                     "enabled": true, 

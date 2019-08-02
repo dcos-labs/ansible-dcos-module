@@ -48,7 +48,7 @@
     dcos_package:
       name: elastic
       app_id: elastic
-      version: 2.5.0-6.3.2
+      version: 2.6.0-6.6.1
       state: present
       options:
         {
@@ -62,7 +62,8 @@
                 }
             }, 
             "elasticsearch": {
-              "xpack_enabled": true
+              "xpack_enabled": true,
+              "xpack_security_enabled": false
             },
             "ingest_nodes": {
               "count": 1
@@ -73,13 +74,14 @@
     dcos_package:
       name: kibana
       app_id: kibana
-      version: 2.5.0-6.3.2
+      version: 2.6.0-6.6.1
       state: present
       options:
         {
             "kibana": {
                 "xpack_enabled": true,
                 "elasticsearch_tls": true,
+                "elasticsearch_xpack_security_enabled": false,
                 "elasticsearch_url": "https://coordinator.elastic.l4lb.thisdcos.directory:9200"
             }
         }

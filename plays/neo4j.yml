@@ -1,0 +1,173 @@
+---
+- name: Install Neo4J
+  hosts: localhost
+  serial: 1
+  become: false
+
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Run Neo4J
+    dcos_marathon:
+      app_id: /neo4j/core
+      state: present
+      options:
+        {  
+          "id":"/neo4j/core",
+          "cpus":2,
+          "user": "nobody",
+          "mem":8000,
+          "instances":3,
+          "disk": 2000,
+          "container":{  
+            "type":"DOCKER",
+            "volumes":[  
+              {  
+                "containerPath":"data",
+                "mode":"RW",
+                "persistent":{  
+                  "type":"root",
+                  "size":2000
+                }
+              },
+              {  
+                "containerPath":"/data",
+                "hostPath":"data",
+                "mode":"RW"
+              }
+            ],
+            "docker":{  
+              "image":"neo4j/neo4j-dcos:1.0.0-3.1.2",
+              "network":"USER",
+              "forcePullImage":true
+            }
+          },
+          "env":{  
+            "NEO4J_AUTH":"neo4j/dcos",
+            "NEO4J_dbms_mode":"CORE",
+            "NEO4J_causalClustering_expectedCoreClusterSize":"3",
+            "NEO4J_ACCEPT_LICENSE_AGREEMENT":"yes"
+          },
+          "ipAddress":{  
+            "networkName":"dcos"
+          },
+          "healthChecks":[
+            {
+              "protocol":"HTTP",
+              "path":"/",
+              "port":7474,
+              "timeoutSeconds":10,
+              "gracePeriodSeconds":240,
+              "intervalSeconds":10,
+              "maxConsecutiveFailures":10
+            }
+          ]
+        }
+
+  - name: Run Neo4J Replica
+    dcos_marathon:
+      app_id: /neo4j/replica
+      state: present
+      options:
+        {  
+          "id":"/neo4j/replica",
+          "cpus":2,
+          "mem":4000,
+          "instances":1,
+          "disk": 2000,
+          "dependencies":[
+            "/neo4j/core"
+          ],
+          "container":{  
+            "type":"DOCKER",
+            "volumes":[  
+              {  
+                "containerPath":"data",
+                "mode":"RW",
+                "persistent":{  
+                  "type":"root",
+                  "size":2000
+                }
+              },
+              {  
+                "containerPath":"/data",
+                "hostPath":"data",
+                "mode":"RW"
+              }
+            ],
+            "docker":{  
+              "image":"neo4j/neo4j-dcos:1.0.0-3.1.2",
+              "network":"USER",
+              "forcePullImage":true
+            }
+          },
+          "env":{  
+            "NEO4J_AUTH":"neo4j/dcos",
+            "NEO4J_dbms_mode":"READ_REPLICA",
+            "NEO4J_ACCEPT_LICENSE_AGREEMENT":"yes"
+          },
+          "ipAddress":{  
+            "networkName":"dcos"
+          },
+          "healthChecks":[
+            {
+              "protocol":"HTTP",
+              "path":"/",
+              "port":7474,
+              "timeoutSeconds":10,
+              "gracePeriodSeconds":240,
+              "intervalSeconds":10,
+              "maxConsecutiveFailures":10
+            }
+          ]
+        }
+
+  - name: Run Neo4J Replica
+    dcos_marathon:
+      app_id: /neo4j/proxy
+      state: present
+      options:
+        {
+          "id":"/neo4j/proxy",
+          "cpus":1,
+          "mem":1024,
+          "instances":1,
+          "dependencies":[
+            "/neo4j/core"
+          ],
+          "container":{  
+            "type":"DOCKER",
+            "docker":{  
+              "image":"neo4j/neo4j-dcos-proxy:1.0.1",
+              "forcePullImage":true,
+              "network":"BRIDGE",
+              "portMappings":[  
+                {  
+                  "hostPort":7474,
+                  "containerPort":7474,
+                  "protocol":"tcp"
+                }
+              ]
+            }
+          },
+          "env":{  
+            "DCOS_NEO4J_USER":"neo4j",
+            "DCOS_NEO4J_PASS":"dcos"
+          },
+          "healthChecks":[
+            {
+              "protocol":"HTTP",
+              "path":"/",
+              "port":7474,
+              "timeoutSeconds":10,
+              "gracePeriodSeconds":240,
+              "intervalSeconds":10,
+              "maxConsecutiveFailures":10
+            }
+          ],
+          "acceptedResourceRoles":[  
+            "slave_public"
+          ]
+        }
