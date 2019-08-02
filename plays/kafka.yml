@@ -1,0 +1,117 @@
+---
+- name: Install Apache-Kafka
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Create a group for ZooKeeper
+    dcos_iam_group:
+      gid: kafka-zookeeper-group
+      description: Permissions for ZooKeeper
+      state: present
+      permissions:
+        - rid: dcos:mesos:master:framework:role:kafka-zookeeper-role
+          action: create
+        - rid: dcos:mesos:master:reservation:role:kafka-zookeeper-role
+          action: create
+        - rid: dcos:mesos:master:volume:role:kafka-zookeeper-role
+          action: create
+        - rid: dcos:mesos:master:task:user:nobody
+          action: create
+        - rid: dcos:mesos:master:reservation:principal:kafka-zookeeper
+          action: delete
+        - rid: dcos:mesos:master:volume:principal:kafka-zookeeper
+          action: delete
+
+  - name: Create service account for ZooKeeper
+    dcos_iam_serviceaccount:
+      sid: kafka-zookeeper
+      description: 'ZooKeeper Service Account'
+      secret_path: kafka-zookeeper/secret
+      groups: 
+        - kafka-zookeeper-group
+      state: present
+
+  - name: Ensure ZooKeeper is installed
+    dcos_package:
+      name: kafka-zookeeper
+      app_id: kafka-zookeeper
+      version: 2.6.0-3.4.14
+      state: present
+      options:
+        {
+          "service": {
+            "name": "kafka-zookeeper",
+            "service_account": "kafka-zookeeper",
+            "service_account_secret": "kafka-zookeeper/secret" 
+          }
+        }
+
+  - name: Create a group for Kafka
+    dcos_iam_group:
+      gid: apache-kafka-group
+      description: Permissions for Kafka
+      state: present
+      permissions:
+        - rid: dcos:mesos:master:framework:role:kafka-role
+          action: create
+        - rid: dcos:mesos:master:reservation:role:kafka-role
+          action: create
+        - rid: dcos:mesos:master:volume:role:kafka-role
+          action: create
+        - rid: dcos:mesos:master:task:user:nobody
+          action: create
+        - rid: dcos:mesos:master:reservation:principal:apache-kafka
+          action: delete
+        - rid: dcos:mesos:master:volume:principal:apache-kafka
+          action: delete
+        - rid: dcos:secrets:default:/kafka/*
+          action: full
+        - rid: dcos:secrets:list:default:/kafka
+          action: read
+        - rid: dcos:adminrouter:ops:ca:rw
+          action: full
+        - rid: dcos:adminrouter:ops:ca:ro
+          action: full
+  
+  - name: Create service account for Kafka
+    dcos_iam_serviceaccount:
+      sid: apache-kafka
+      description: 'Kafka Service Account'
+      secret_path: kafka/secret
+      groups: 
+        - apache-kafka-group
+      state: present
+
+  - name: Ensure Kafka is installed
+    dcos_package:
+      name: kafka
+      app_id: kafka
+      version: 2.6.0-2.2.1
+      state: present
+      options:
+        {
+          "service": {
+            "name": "kafka",
+            "service_account": "apache-kafka",
+            "service_account_secret": "kafka/secret",
+            "security": {
+              "ssl_authentication": {
+                "enabled": false
+              },
+              "transport_encryption": {
+                "enabled": false
+              }
+            }
+          },
+          "brokers": {
+            "port": 9092
+          },
+          "kafka": {
+            "kafka_zookeeper_uri": "zookeeper-0-server.kafka-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.kafka-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.kafka-zookeeper.autoip.dcos.thisdcos.directory:1140"
+          }
+        }

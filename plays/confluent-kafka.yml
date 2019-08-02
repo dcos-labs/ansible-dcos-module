@@ -40,7 +40,7 @@
     dcos_package:
       name: confluent-zookeeper
       app_id: confluent-zookeeper
-      version: 2.4.0-4.0.0e
+      version: 2.6.0-5.1.2e
       state: present
       options:
         {
@@ -49,7 +49,7 @@
             "service_account": "confluent-zookeeper",
             "service_account_secret": "confluent-zookeeper/secret" 
           }
-      }
+        }
 
   - name: Create a group for Kafka
     dcos_iam_group:
@@ -91,28 +91,33 @@
     dcos_package:
       name: confluent-kafka
       app_id: confluent-kafka
-      version: 2.4.0-4.1.1
+      version: 2.6.0-5.1.2
       state: present
       options:
         {
-          'service': {
-            'name': 'confluent-kafka',
-            'service_account': 'confluent-kafka',
-            'service_account_secret': 'confluent-kafka/secret',
+          "service": {
+            "name": "confluent-kafka",
+            "service_account": "confluent-kafka",
+            "service_account_secret": "confluent-kafka/secret",
             "security": {
               "ssl_authentication": {
                 "enabled": true
               },
               "transport_encryption": {
                 "enabled": true
+              },
+              "authorization": {
+                "enabled": true,
+                "super_users": "User:admin",
+                "allow_everyone_if_no_acl_found": true
               }
             }
           },
           "brokers": {
             "port_tls": 9092
           },
-          'kafka': {
-            'kafka_zookeeper_uri': 'zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140'
+          "kafka": {
+            "kafka_zookeeper_uri": "zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140"
           }
         }
 
@@ -120,12 +125,13 @@
     dcos_package:
       name: confluent-control-center
       app_id: control-center
-      version: 1.1.1-4.1.1
+      version: 2.6.0-5.1.2
       state: present
       options:
         {
           "control-center": {
             "name": "control-center",
+            "user": "nobody",
             "listener_protocol": "http"
           },
           "kafka": {
@@ -139,17 +145,19 @@
     dcos_package:
       name: confluent-schema-registry
       app_id: schema-registry
-      version: 1.1.0-4.0.0
+      version: 2.6.0-5.1.2
       state: present
       options:
         {
           "registry": {
             "name": "schema-registry",
             "zookeeper_namespace": "dcos-service-confluent-kafka/schema-registry",
+            "user": "nobody",
             "listener_protocol": "http"
           },
           "kafka": {
             "zookeeper_connect": "zookeeper-0-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-1-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140,zookeeper-2-server.confluent-zookeeper.autoip.dcos.thisdcos.directory:1140",
+            "kafkastore-bootstrap-servers": "SSL://kafka-0-broker.confluent-kafka.autoip.dcos.thisdcos.directory:9092",
             "client_security_protocol": "SSL"
           }
         }
@@ -158,12 +166,13 @@
     dcos_package:
       name: confluent-connect
       app_id: connect
-      version: 1.1.1-4.1.1
+      version: 2.6.0-5.1.2
       state: present
       options:
         {
           "connect": {
-            "name": "connect"
+            "name": "connect",
+            "user": "nobody"
           },
           "kafka": {
             "bootstrap_servers": "broker-tls.confluent-kafka.l4lb.thisdcos.directory:9093",
@@ -179,12 +188,13 @@
     dcos_package:
       name: confluent-rest-proxy
       app_id: rest-proxy
-      version: 1.1.1-4.1.1
+      version: 2.6.0-5.1.2
       state: present
       options:
         {
           "rest-proxy": {
-            "name": "rest-proxy"
+            "name": "rest-proxy",
+            "user": "nobody"
           },
           "kafka": {
             "bootstrap_servers": "broker-tls.confluent-kafka.l4lb.thisdcos.directory:9093",

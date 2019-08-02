@@ -1,0 +1,60 @@
+---
+- name: Install Control Center Proxy via Edge-LB
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Install Edge-LB
+    include: edgelb.yml
+
+  - name: Assign permissions for pool cc-proxy to Edge-LB
+    dcos_iam_group:
+      gid: edgelb-group
+      description: Permissions for Edge-LB
+      state: present
+      permissions:
+        - rid: dcos:adminrouter:service:dcos-edgelb/pools/cc-proxy
+          action: full
+
+  - name: Create cc-proxy pool
+    dcos_edgelb:
+      pool_id: cc-proxy
+      state: present
+      options:
+        {
+          "apiVersion": "V2",
+          "name": "cc-proxy",
+          "cpus": 0.7,
+          "count": 1,
+          "haproxy": {
+            "frontends": [
+              {
+                "bindPort": 8181,
+                "protocol": "TCP",
+                "linkBackend": {
+                  "defaultBackend": "controlcenter"
+                }
+              }
+            ],
+            "backends": [{
+              "name": "controlcenter",
+              "protocol": "TCP",
+              "services": [{
+                "mesos": {
+                  "frameworkName": "marathon",
+                  "taskNamePattern": "control-center"
+                },
+                "endpoint": {
+                  "portName": "control-center"
+                }
+              }]
+            }],
+            "stats": {
+              "bindPort": 6090
+            }
+          }
+        }
