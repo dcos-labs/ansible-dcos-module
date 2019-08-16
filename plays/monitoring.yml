@@ -59,9 +59,9 @@
 
   - name: Ensure dcos-monitoring is installed
     dcos_package:
-      name: beta-dcos-monitoring
+      name: dcos-monitoring
       app_id: dcos-monitoring
-      version: v0.5.0-beta
+      version: v1.0.2
       state: present
       options:
         {
@@ -70,13 +70,17 @@
             "service_account": "dcos-monitoring-principal",
             "service_account_secret": "dcos-monitoring/secret"
           },
+          "pushgateway": {
+            "enabled": true
+          },
           "grafana": {
-            "ui_port": 3000,
-            "public": false,
+            "admin_router_proxy": true,
+            "use_light_theme": true,
+            "default_dashboards": true,
             "dashboard_config_repository": {
               "url": "https://github.com/dcos-labs/professional-services",
-              "path": "/docs/grafana-dashboards-dcos/dcos-1.12/"
-            },
-            "default_dashboards": true
-          }  
-      }
+              "path": "/docs/grafana-dashboards-dcos/dcos-1.12/",
+              "reference_name": "refs/heads/master"
+            }
+          }
+        }
