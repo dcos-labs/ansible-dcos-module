@@ -1,0 +1,64 @@
+---
+- name: DC/OS Monitoring Pushgateway
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Install Edge-LB
+    include: edgelb.yml
+
+  - name: Assign permissions for pool pushgateway-lb to Edge-LB
+    dcos_iam_group:
+      gid: edgelb-group
+      description: Permissions for Edge-LB
+      state: present
+      permissions:
+        - rid: dcos:adminrouter:service:dcos-edgelb/pools/pushgateway-lb
+          action: full
+
+  - name: Create pushgateway-lb pool
+    dcos_edgelb:
+      pool_id: pushgateway-lb
+      state: present
+      options:
+        {
+          "apiVersion": "V2",
+          "role": "slave_public",
+          "name": "pushgateway-lb",
+          "count": 1,
+          "haproxy": {
+            "stats": {
+              "bindPort": 19091
+            },
+            "frontends": [
+              {
+                "bindPort": 9091,
+                "linkBackend": {
+                  "defaultBackend": "prom-backend"
+                },
+                "protocol": "TCP"
+              }
+            ],
+            "backends": [
+              {
+                "name": "prom-backend",
+                "protocol": "TCP",
+                "services": [
+                  {
+                    "endpoint": {
+                      "portName": "pushgateway"
+                    },
+                    "mesos": {
+                      "taskNamePattern": "^pushgateway-.*$",
+                      "frameworkName": "dcos-monitoring"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
