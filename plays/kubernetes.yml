@@ -34,7 +34,7 @@
     dcos_package:
       name: kubernetes
       app_id: kubernetes
-      version: 2.4.0-1.15.1
+      version: 2.4.1-1.15.2
       state: present
       options:
         {
@@ -104,7 +104,7 @@
     dcos_package:
       name: kubernetes-cluster
       app_id: kubernetes-cluster
-      version: 2.4.0-1.15.1
+      version: 2.4.1-1.15.2
       state: present
       options:
         {
@@ -124,9 +124,9 @@
             "private_reserved_resources": {
               "kube_cpus": 2,
               "kube_mem": 5120
+            },
+            "metrics_exporter": {
+              "enabled": true
             }
-          },
-          "advanced": {
-            "enable_dcos_kubernetes_cluster_metrics_exporter": true
           }
         }
