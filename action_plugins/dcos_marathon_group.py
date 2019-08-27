@@ -27,27 +27,27 @@ except ImportError:
     from ansible.utils.display import Display
     display = Display()
 
-def get_app_state(app_id):
-    """Get the current state of an app."""
-    r = subprocess.check_output(['dcos', 'marathon', 'app', 'list', '--json' ], env=_dcos_path())
-    apps = json.loads(r)
+def get_group_state(group_id):
+    """Get the current state of an group."""
+    r = subprocess.check_output(['dcos', 'marathon', 'group', 'list', '--json' ], env=_dcos_path())
+    groups = json.loads(r)
 
-    display.vvv('looking for app_id {}'.format(app_id))
+    display.vvv('looking for group_id {}'.format(group_id))
 
     state = 'absent'
-    for a in apps:
+    for a in groups:
         try:
-            if app_id == a['id']:
+            if group_id == a['id']:
                 state = 'present'
-                display.vvv('found app: {}'.format(app_id))
+                display.vvv('found group: {}'.format(group_id))
 
         except KeyError:
          continue
     return state
 
-def app_create(app_id, options):
-    """Deploy an app via Marathon"""
-    display.vvv("DC/OS: Marathon create app {}".format(app_id))
+def group_create(group_id, options):
+    """Deploy an group via Marathon"""
+    display.vvv("DC/OS: Marathon create group {}".format(group_id))
 
     # create a temporary file for the options json file
     with tempfile.NamedTemporaryFile('w+') as f:
@@ -63,16 +63,16 @@ def app_create(app_id, options):
         cmd = [
             'dcos',
             'marathon',
-            'app',
+            'group',
             'add',
             f.name
         ]
-        run_command(cmd, 'add app', stop_on_error=True)
+        run_command(cmd, 'add group', stop_on_error=True)
 
 
-def app_update(app_id, options):
-    """Update an app via Marathon"""
-    display.vvv("DC/OS: Marathon update app {}".format(app_id))
+def group_update(group_id, options):
+    """Update an group via Marathon"""
+    display.vvv("DC/OS: Marathon update group {}".format(group_id))
 
     # create a temporary file for the options json file
     with tempfile.NamedTemporaryFile('w+') as f:
@@ -85,10 +85,10 @@ def app_update(app_id, options):
         cmd = [
             'dcos',
             'marathon',
-            'app',
+            'group',
             'update',
             '--force',
-            app_id
+            group_id
         ]
 
         from subprocess import Popen, PIPE
@@ -99,18 +99,18 @@ def app_update(app_id, options):
         display.vvv("stdout {}".format(stdout))
         display.vvv("stderr {}".format(stderr))
 
-def app_remove(app_id):
-    """Remove an app via Marathon"""
-    display.vvv("DC/OS: Marathon remove app {}".format(app_id))
+def group_remove(group_id):
+    """Remove an group via Marathon"""
+    display.vvv("DC/OS: Marathon remove group {}".format(group_id))
 
     cmd = [
         'dcos',
         'marathon',
-        'app',
+        'group',
         'remove',
-        '/' + app_id,
+        '/' + group_id,
     ]
-    run_command(cmd, 'remove app', stop_on_error=True)
+    run_command(cmd, 'remove group', stop_on_error=True)
 
 class ActionModule(ActionBase):
     def run(self, tmp=None, task_vars=None):
@@ -127,33 +127,33 @@ class ActionModule(ActionBase):
         args = self._task.args
         state = args.get('state', 'present')
 
-        # ensure app_id has a single leading forward slash
-        app_id = '/' + args.get('app_id', '').strip('/')
+        # ensure group_id has a single leading forward slash
+        group_id = '/' + args.get('group_id', '').strip('/')
 
         options = args.get('options') or {}
-        options['id']= app_id
+        options['id']= group_id
 
         ensure_dcos()
 
-        current_state = get_app_state(app_id)
+        current_state = get_group_state(group_id)
         wanted_state = state
 
         if current_state == wanted_state:
             
             display.vvv(
-                "Marathon app {} already in desired state {}".format(app_id, wanted_state))
+                "Marathon group {} already in desired state {}".format(group_id, wanted_state))
 
             if wanted_state == "present":
-                app_update(app_id, options)
+                group_update(group_id, options)
 
             result['changed'] = False
         else:
-            display.vvv("Marathon app {} not in desired state {}".format(app_id, wanted_state))
+            display.vvv("Marathon group {} not in desired state {}".format(group_id, wanted_state))
 
             if wanted_state != 'absent':
-                app_create(app_id, options)
+                group_create(group_id, options)
             else:
-                app_remove(app_id)
+                group_remove(group_id)
 
             result['changed'] = True
 

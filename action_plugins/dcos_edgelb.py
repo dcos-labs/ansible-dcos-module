@@ -79,7 +79,7 @@ def get_pool_state(pool_id, instance_name):
     state = 'absent'
     for p in pools:
         try:
-            if pool_id in p['name']:
+            if pool_id == p['name']:
                 state = 'present'
                 display.vvv('found pool: {}'.format(pool_id))
 

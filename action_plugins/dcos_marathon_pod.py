@@ -37,7 +37,7 @@ def get_pod_state(pod_id):
     state = 'absent'
     for a in pods:
         try:
-            if pod_id in a['id']:
+            if pod_id == a['id']:
                 state = 'present'
                 display.vvv('found pod: {}'.format(pod_id))
 
