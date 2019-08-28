@@ -34,7 +34,7 @@
           action: full
         - rid: dcos:adminrouter:ops:ca:ro
           action: full
-  
+
   - name: Create service account for Elastic
     dcos_iam_serviceaccount:
       sid: elastic
@@ -48,7 +48,7 @@
     dcos_package:
       name: elastic
       app_id: elastic
-      version: 2.6.0-6.6.1
+      version: 2.7.0-6.8.1
       state: present
       options:
         {
@@ -62,8 +62,57 @@
                 }
             }, 
             "elasticsearch": {
+              "health_user": "elastic",
+              "health_user_password": "CviBT1vfUGVaWDl6idka",
               "xpack_enabled": true,
-              "xpack_security_enabled": false
+              "xpack_security_enabled": true
+            },
+            "ingest_nodes": {
+              "count": 1
+            }  
+        }
+
+  - name: Wait for master-0
+    command: dcos task exec elastic__master-0-node sleep 30
+    retries: 3
+    delay: 3
+    register: result
+    until: result.rc == 0
+
+  - name: Run password script
+    command: dcos task exec elastic__master-0-node sh -c 'export JAVA_HOME=$(ls -d ${MESOS_SANDBOX}/jdk*/); export ELASTICSEARCH_PATH=$(ls -d ${MESOS_SANDBOX}/elasticsearch-*/); ${ELASTICSEARCH_PATH}/bin/elasticsearch-setup-passwords auto --batch --verbose --url https://master-0-node.elastic.autoip.dcos.thisdcos.directory:1025'
+    register: results
+
+  - name: Parse passwords
+    set_fact:
+      elastic_password: "{{ results.stdout | regex_search(regexp_elastic,'\\1') }}"
+      kibana_password: "{{ results.stdout | regex_search(regexp_kibana,'\\1') }}"
+    vars:
+      regexp_elastic: 'PASSWORD elastic = (.*)'
+      regexp_kibana: 'PASSWORD kibana = (.*)'
+
+  - name: Update Elastic with health credentials
+    dcos_package:
+      name: elastic
+      app_id: elastic
+      version: 2.7.0-6.8.1
+      state: present
+      options:
+        {
+            "service": {
+                "service_account": "elastic",
+                "service_account_secret": "elastic/secret",
+                "security": {
+                    "transport_encryption": {
+                        "enabled": true
+                    }
+                }
+            }, 
+            "elasticsearch": {
+              "health_user": "elastic",
+              "health_user_password": "{{ elastic_password | first }}",
+              "xpack_enabled": true,
+              "xpack_security_enabled": true
             },
             "ingest_nodes": {
               "count": 1
@@ -74,14 +123,16 @@
     dcos_package:
       name: kibana
       app_id: kibana
-      version: 2.6.0-6.6.1
+      version: 2.7.0-6.8.1
       state: present
       options:
         {
             "kibana": {
                 "xpack_enabled": true,
                 "elasticsearch_tls": true,
-                "elasticsearch_xpack_security_enabled": false,
+                "elasticsearch_xpack_security_enabled": true,
+                "user": "kibana",
+                "password": "{{ kibana_password | first }}",
                 "elasticsearch_url": "https://coordinator.elastic.l4lb.thisdcos.directory:9200"
             }
         }
