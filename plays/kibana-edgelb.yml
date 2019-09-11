@@ -1,0 +1,55 @@
+---
+- name: Expose Kibana via Edge-LB
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Install Edge-LB
+    include: edgelb.yml
+
+  - name: Create Kibana Pool
+    dcos_edgelb:
+      pool_id: kibana-lb
+      state: present
+      options:
+        {
+          "apiVersion": "V2",
+          "role": "slave_public",
+          "name": "kibana-lb",
+          "count": 1,
+          "haproxy": {
+            "stats": {
+              "bindPort": 9090
+            },
+            "frontends": [
+              {
+                "bindPort": 5061,
+                "linkBackend": {
+                  "defaultBackend": "kibana-backend"
+                },
+                "protocol": "HTTP"
+              }
+            ],
+            "backends": [
+              {
+                "name": "kibana-backend",
+                "protocol": "HTTP",
+                "services": [
+                  {
+                    "endpoint": {
+                      "portName": "kibana"
+                    },
+                    "mesos": {
+                      "taskNamePattern": "^kibana.*$",
+                      "frameworkName": "marathon"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
