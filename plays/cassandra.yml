@@ -47,7 +47,7 @@
     dcos_package:
       name: cassandra
       app_id: cassandra
-      version: 2.6.0-3.11.4
+      version: 2.7.0-3.11.4
       state: present
       options:
         {

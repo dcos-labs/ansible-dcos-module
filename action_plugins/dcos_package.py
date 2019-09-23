@@ -29,7 +29,7 @@ except ImportError:
 
 def get_current_version(package, app_id):
     """Get the current version of an installed package."""
-    r = subprocess.check_output(['dcos', 'package', 'list', '--json', '--app-id='+app_id ], env=_dcos_path())
+    r = subprocess.check_output(['dcos', 'package', 'list', '--json', '--app-id=/'+app_id ], env=_dcos_path())
     packages = json.loads(r)
 
     display.vvv('looking for package {} app_id {}'.format(package, app_id))

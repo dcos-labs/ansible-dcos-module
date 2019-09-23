@@ -34,7 +34,7 @@
     dcos_package:
       name: kubernetes
       app_id: kubernetes
-      version: 2.4.1-1.15.2
+      version: 2.4.2-1.15.3
       state: present
       options:
         {
@@ -104,7 +104,7 @@
     dcos_package:
       name: kubernetes-cluster
       app_id: kubernetes-cluster
-      version: 2.4.1-1.15.2
+      version: 2.4.2-1.15.3
       state: present
       options:
         {
@@ -119,7 +119,7 @@
             "authorization_mode": "RBAC", # AlwaysAllow or RBAC
             "dcos_token_authentication": true,
             "high_availability": false,
-            "private_node_count": 1,
+            "private_node_count": 3,
             "public_node_count": 0,
             "private_reserved_resources": {
               "kube_cpus": 2,
