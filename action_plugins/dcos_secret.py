@@ -59,6 +59,42 @@ def get_secret_value(path, store):
 
     return value
 
+def secret_create_from_file(path, file, store):
+    """Create a secret from file"""
+
+    display.vvv("DC/OS: create secret from file {} at path {}".format(file,path))
+
+    cmd = [
+        'dcos',
+        'security',
+        'secrets',
+        'create',
+        '--store-id',
+        store,
+        '-f',
+        file,
+        path
+    ]
+    run_command(cmd, 'create secret', stop_on_error=True)
+
+def secret_update_from_file(path, file, store):
+    """Update a secret from file"""
+
+    display.vvv("DC/OS: update secret from file {} at path {}".format(file,path))
+
+    cmd = [
+        'dcos',
+        'security',
+        'secrets',
+        'update',
+        '--store-id',
+        store,
+        '-f',
+        file,
+        path
+    ]
+    run_command(cmd, 'update secret', stop_on_error=True)
+
 def secret_create(path, value, store):
     """Create a secret"""
 
