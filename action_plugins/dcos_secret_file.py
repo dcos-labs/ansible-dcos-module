@@ -46,7 +46,6 @@ def get_secret_value(path, store):
             'get',
             '--store-id',
             store,
-            '--json',
             path
             ],
             env=_dcos_path(),
@@ -59,10 +58,10 @@ def get_secret_value(path, store):
 
     return value
 
-def secret_create(path, value, store):
-    """Create a secret"""
+def secret_create_from_file(path, file, store):
+    """Create a secret from file"""
 
-    display.vvv("DC/OS: create secret {} with {}".format(path, value))
+    display.vvv("DC/OS: create secret from file {} at path {}".format(file,path))
 
     cmd = [
         'dcos',
@@ -71,16 +70,16 @@ def secret_create(path, value, store):
         'create',
         '--store-id',
         store,
-        '--value',
-        value,
+        '-f',
+        file,
         path
     ]
     run_command(cmd, 'create secret', stop_on_error=True)
 
-def secret_update(path, value, store):
-    """Update a secret"""
+def secret_update_from_file(path, file, store):
+    """Update a secret from file"""
 
-    display.vvv("DC/OS: update secret {} with {}".format(path, value))
+    display.vvv("DC/OS: update secret from file {} at path {}".format(file,path))
 
     cmd = [
         'dcos',
@@ -89,8 +88,8 @@ def secret_update(path, value, store):
         'update',
         '--store-id',
         store,
-        '--value',
-        value,
+        '-f',
+        file,
         path
     ]
     run_command(cmd, 'update secret', stop_on_error=True)
@@ -128,38 +127,41 @@ class ActionModule(ActionBase):
         if path is None:
             raise AnsibleActionFail('path cannot be empty for dcos_secret')
         store = args.get('store', 'default')
-        value = args.get('value')
-        wanted_state = args.get('state', 'present')
+        file = args.get('file')
 
-        ensure_dcos()
-        ensure_dcos_security()
+        with open(file, "r") as wanted_value:
 
-        current_value = get_secret_value(path, store)
+            wanted_state = args.get('state', 'present')
 
-        current_state = 'present' if current_value is not None else 'absent'
+            ensure_dcos()
+            ensure_dcos_security()
 
-        if current_state == wanted_state:
-            
-            display.vvv(
-                "DC/OS Secret {} already in desired state {}".format(path, wanted_state))
-            result['changed'] = False
+            current_value = get_secret_value(path, store)
 
-            if wanted_state == "present" and current_value != value:
-                secret_update(path, value, store)
-                result['changed'] = True
-                result['msg'] = "Secret {} was updated".format(path)
+            current_state = 'present' if current_value is not None else 'absent'
 
-        else:
-            display.vvv("DC/OS Secret {} not in desired state {}".format(path, wanted_state))
+            if current_state == wanted_state:
+                
+                display.vvv(
+                    "DC/OS Secret {} already in desired state {}".format(path, wanted_state))
+                result['changed'] = False
 
-            if wanted_state != 'absent':
-                secret_create(path, value, store)
-                result['msg'] = "Secret {} was created".format(path)
+                if wanted_state == "present" and current_value != wanted_value.read():
+                    secret_update_from_file(path, file, store)
+                    result['changed'] = True
+                    result['msg'] = "Secret {} was updated".format(path)
 
             else:
-                secret_delete(path, store)
-                result['msg'] = "Secret {} was deleted".format(path)
+                display.vvv("DC/OS Secret {} not in desired state {}".format(path, wanted_state))
 
-            result['changed'] = True
+                if wanted_state != 'absent':
+                    secret_create_from_file(path, file, store)
+                    result['msg'] = "Secret {} was created".format(path)
 
-        return result
+                else:
+                    secret_delete(path, store)
+                    result['msg'] = "Secret {} was deleted".format(path)
+
+                result['changed'] = True
+
+            return result
