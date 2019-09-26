@@ -129,7 +129,7 @@ class ActionModule(ActionBase):
         store = args.get('store', 'default')
         file = args.get('file')
 
-        with open(file, "r") as wanted_value:
+        with open(file, "rb") as wanted_value:
 
             wanted_state = args.get('state', 'present')
 
@@ -146,7 +146,7 @@ class ActionModule(ActionBase):
                     "DC/OS Secret {} already in desired state {}".format(path, wanted_state))
                 result['changed'] = False
 
-                if wanted_state == "present" and current_value != wanted_value.read():
+                if wanted_state == "present" and current_value != wanted_value:
                     secret_update_from_file(path, file, store)
                     result['changed'] = True
                     result['msg'] = "Secret {} was updated".format(path)
