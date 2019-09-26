@@ -51,7 +51,7 @@ def get_secret_value(path, store):
             env=_dcos_path(),
             stderr=subprocess.STDOUT
         )
-        value = r.decode()
+        value = r
         display.vvv('secret {} has value {}'.format(path, value))
     except:
         value = None
