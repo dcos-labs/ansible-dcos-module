@@ -8,10 +8,15 @@
   - name: Connect to the cluster
     include: connection.yml
 
-  - name: create a secret
+  - name: Create a secret
     dcos_secret:
       path: test/secret
       value: "Hello World!"
+
+  - name: Create a file-based secret
+    dcos_secret_file:
+      path: test/secret_file
+      file: ./ansible.cfg
 
   - name: Run a Marathon application
     dcos_marathon:
@@ -22,7 +27,7 @@
         mem: 128
         instances: 1
         container:
-          type: MESOS
+          type: DOCKER
           docker:
             image: nginx
           portMappings:
@@ -37,9 +42,9 @@
     dcos_package:
       name: spark
       app_id: namespace/spark
-      version: 2.3.0-2.2.1-2
+      version: 2.9.0-2.4.3
       state: present
       options:
         service:
           UCR_containerizer: true
-          user: root
+          user: nobody
