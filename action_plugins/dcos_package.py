@@ -20,7 +20,7 @@ from ansible.errors import AnsibleActionFail
 sys.path.append(os.getcwd())
 sys.path.append(os.getcwd() + '/resources/ansible-dcos-module')
 from action_plugins.common import ensure_dcos, run_command, _dcos_path
-
+from action_plugins.dcos_marathon import app_update
 try:
     from __main__ import display
 except ImportError:
@@ -84,12 +84,43 @@ def update_package(package, app_id, version, options):
     display.vvv("DC/OS: updating package {} version {}".format(
         package, version))
 
-    app_remove(app_id)
-    time.sleep(20)
-    while get_current_version(package, app_id) is not None:
-        time.sleep(1)
+    # create a temporary file for the options json file
+    with tempfile.NamedTemporaryFile('w+') as f:
+        json.dump(options, f)
 
-    install_package(package, version, options)
+        # force write the file to disk to make sure subcommand can read it
+        f.flush()
+        os.fsync(f)
+
+        display.vvv(subprocess.check_output(
+        ['cat', f.name]).decode())
+
+        r = subprocess.check_output([
+            'dcos',
+            'package',
+            'describe',
+            package,
+            '--options',
+            f.name,
+            '--package-version',
+            version,
+            '--render',
+            '--app',
+            ], env=_dcos_path())
+        app_update(app_id, json.loads(r))
+
+    # workaround: install cli to refresh dcos package list
+    cmd = [
+        'dcos',
+        'package',
+        'install',
+        package,
+        '--package-version',
+        version,
+        '--yes',
+        '--cli'
+    ]
+    run_command(cmd, 'install cli', stop_on_error=True)
 
 def uninstall_package(package, app_id):
     display.vvv("DC/OS: uninstalling package {}".format(package))
@@ -105,18 +136,6 @@ def uninstall_package(package, app_id):
         '/' + app_id,
     ]
     run_command(cmd, 'uninstall package', stop_on_error=True)
-
-def app_remove(app_id):
-    display.vvv("DC/OS: remove app {}".format(app_id))
-
-    cmd = [
-        'dcos',
-        'marathon',
-        'app',
-        'remove',
-        '/' + app_id,
-    ]
-    run_command(cmd, 'remove app', stop_on_error=True)
 
 class ActionModule(ActionBase):
     def run(self, tmp=None, task_vars=None):
