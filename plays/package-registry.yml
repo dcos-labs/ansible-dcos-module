@@ -28,7 +28,7 @@
     dcos_iam_serviceaccount:
       sid: registry-account
       description: 'Package Registry Service Account'
-      secret_path: registry/secret
+      secret_path: dcos-registry/secret
       groups: 
         - registry-account-group
       state: present
@@ -36,13 +36,13 @@
   - name: Ensure Package Registry is installed
     dcos_package:
       name: package-registry
-      app_id: registry
-      version: 0.2.1-0.2.1-507-5b2ec60
+      app_id: dcos-registry
+      version: 0.2.0-SNAPSHOT-0.2.0-SNAPSHOT-523-ce1fb2d
       state: present
       options:
         {
           "registry":{
-            "service-account-secret-path": "registry/secret"
+            "service-account-secret-path": "dcos-registry/secret"
           }
         }
 
@@ -57,8 +57,6 @@
   - name: Enables Package Registry
     dcos_package_repo:
       name: Package Registry
-      url: https://registry.marathon.l4lb.thisdcos.directory/repo
+      url: https://dcos-registry.marathon.l4lb.thisdcos.directory/repo
       index: 0
       state: present
-
-
