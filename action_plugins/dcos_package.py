@@ -163,7 +163,7 @@ class ActionModule(ActionBase):
 
         options = args.get('options') or {}
         try:
-            options['service']['name']= app_id
+            options['service']['name']
         except KeyError:
             options['service'] = {'name': app_id }
 
