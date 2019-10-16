@@ -55,13 +55,14 @@
   dcos_package:
     name: edgelb
     app_id: dcos-edgelb/api
-    version: v1.4.0
+    version: v1.5.0
     state: present
     options:
       {
-      "service": {
-        "secretName": "dcos-edgelb/secret",
-        "principal": "edgelb",
-        "mesosProtocol": "https"
+        "service": {
+          "name": "",
+          "mesosProtocol": "https",
+          "secretName": "dcos-edgelb/secret",
+          "principal": "edgelb"
+        }
       }
-    }
