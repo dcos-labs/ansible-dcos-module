@@ -48,11 +48,12 @@
     dcos_package:
       name: elastic
       app_id: elastic
-      version: 2.7.0-6.8.1
+      version: 3.0.0-7.3.2
       state: present
       options:
         {
             "service": {
+                "name": "elastic",
                 "service_account": "elastic",
                 "service_account_secret": "elastic/secret",
                 "security": {
@@ -71,7 +72,7 @@
         }
 
   - name: Wait for masters
-    command: dcos task exec elastic__master-0-node bash -c "/opt/mesosphere/bin/python <<<\"import socket; socket.setdefaulttimeout(1); socket.socket().connect(('{{ item }}.elastic.autoip.dcos.thisdcos.directory', 1025))\""
+    command: dcos task exec elastic__{{ item }} bash -c "/opt/mesosphere/bin/python <<<\"import socket; socket.setdefaulttimeout(1); socket.socket().connect(('master.elastic.l4lb.thisdcos.directory', 9200))\""
     retries: 20
     delay: 5
     register: result
@@ -82,7 +83,7 @@
       - master-2-node
 
   - name: Run password script
-    command: dcos task exec elastic__master-0-node sh -c 'export JAVA_HOME=$(ls -d ${MESOS_SANDBOX}/jdk*/); export ELASTICSEARCH_PATH=$(ls -d ${MESOS_SANDBOX}/elasticsearch-*/); ${ELASTICSEARCH_PATH}/bin/elasticsearch-setup-passwords auto --batch --verbose --url https://master-0-node.elastic.autoip.dcos.thisdcos.directory:1025'
+    command: dcos task exec elastic__master-0-node sh -c 'export JAVA_HOME=$(ls -d ${MESOS_SANDBOX}/jdk*/); export ELASTICSEARCH_PATH=$(ls -d ${MESOS_SANDBOX}/elasticsearch-*/); ${ELASTICSEARCH_PATH}/bin/elasticsearch-setup-passwords auto --batch --verbose --url https://master-0-node.elastic.autoip.dcos.thisdcos.directory:${PORT_HTTP}'
     register: results
 
   - name: Parse passwords
@@ -97,11 +98,12 @@
     dcos_package:
       name: elastic
       app_id: elastic
-      version: 2.7.0-6.8.1
+      version: 3.0.0-7.3.2
       state: present
       options:
         {
             "service": {
+                "name": "elastic",
                 "service_account": "elastic",
                 "service_account_secret": "elastic/secret",
                 "security": {
@@ -125,7 +127,7 @@
     dcos_package:
       name: kibana
       app_id: kibana
-      version: 2.7.0-6.8.1
+      version: 3.0.0-7.3.2
       state: present
       options:
         {
