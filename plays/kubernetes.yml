@@ -8,6 +8,9 @@
   - name: Connect to the cluster
     include: connection.yml
 
+  - name: Install Edge-LB
+    include: edgelb.yml
+
   - name: Create a group for Mesosphere Kubernetes Engine
     dcos_iam_group:
       gid: kubernetes-group
@@ -34,11 +37,12 @@
     dcos_package:
       name: kubernetes
       app_id: kubernetes
-      version: 2.4.2-1.15.3
+      version: 2.4.4-1.15.4
       state: present
       options:
         {
           "service": {
+            "name": "kubernetes",
             "service_account": "kubernetes",
             "service_account_secret": "kubernetes/secret"
           }
@@ -104,7 +108,7 @@
     dcos_package:
       name: kubernetes-cluster
       app_id: kubernetes-cluster
-      version: 2.4.2-1.15.3
+      version: 2.4.4-1.15.4
       state: present
       options:
         {
@@ -127,6 +131,13 @@
             },
             "metrics_exporter": {
               "enabled": true
-            }
+            },
+            "apiserver_edgelb": {
+              "expose": true,
+              "template": "default",
+              "certificate": "$AUTOCERT",
+              "port": 8181,
+              "path": ""
+            },
           }
         }

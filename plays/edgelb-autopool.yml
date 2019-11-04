@@ -1,0 +1,42 @@
+---
+- name: Deploy Edge-LB Self-Service Demo
+  hosts: localhost
+  serial: 1
+  become: false
+
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Install Edge-LB
+    include: edgelb.yml
+
+  - name: Deploy /nginx-bridge via Marathon
+    dcos_marathon:
+      app_id: /nginx-bridge
+      state: present
+      options:
+        {
+          "id": "/nginx-bridge",
+          "networks": [
+              {
+                  "mode": "container/bridge"
+              }
+          ],
+          "container": {
+            "portMappings": [ {
+                "containerPort": 80,
+                "protocol": "tcp",
+                "name": "web"
+              }],
+            "type": "DOCKER",
+            "docker": {"image": "nginx"}
+          },
+          "labels": {
+              "edgelb.expose": "true"
+          },
+          "cpus": 0.1,
+          "instances": 1,
+          "mem": 128
+        }

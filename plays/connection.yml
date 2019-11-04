@@ -34,4 +34,4 @@
     username: "{{ dcos_username }}"
     password: "{{ dcos_password }}"
     no_check: true
-    insecure: false
+    insecure: true

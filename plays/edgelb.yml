@@ -42,6 +42,15 @@
       - rid: dcos:secrets:list:default:/dcos-edgelb/*
         action: full
 
+- name: Assign permissions for pool auto-default to Edge-LB
+  dcos_iam_group:
+    gid: edgelb-group
+    description: Permissions for Edge-LB
+    state: present
+    permissions:
+      - rid: dcos:adminrouter:service:dcos-edgelb/pools/auto-default
+        action: full
+
 - name: Create service account for Edge-LB
   dcos_iam_serviceaccount:
     sid: edgelb
