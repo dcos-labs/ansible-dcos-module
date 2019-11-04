@@ -1,0 +1,97 @@
+---
+- name: Install PostgreSQL
+  hosts: localhost
+  serial: 1
+  become: false
+
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: Run PostgreSQL
+    dcos_marathon:
+      app_id: /postgresql
+      state: present
+      options:
+        {
+          "id": "/postgresql",
+          "backoffFactor": 1.15,
+          "backoffSeconds": 1,
+          "container": {
+            "portMappings": [
+              {
+                "containerPort": 5432,
+                "hostPort": 0,
+                "labels": {
+                  "VIP_0": "/postgresql:5432"
+                },
+                "protocol": "tcp",
+                "name": "postgresql"
+              }
+            ],
+            "type": "DOCKER",
+            "volumes": [
+              {
+                "persistent": {
+                  "type": "root",
+                  "size": 512,
+                  "constraints": []
+                },
+                "mode": "RW",
+                "containerPath": "pgdata"
+              }
+            ],
+            "docker": {
+              "image": "postgres:12.0",
+              "forcePullImage": false,
+              "privileged": false,
+              "parameters": []
+            }
+          },
+          "cpus": 0.3,
+          "disk": 0,
+          "env": {
+            "POSTGRES_USER": "myuser",
+            "PGDATA": "/mnt/mesos/sandbox/pgdata",
+            "POSTGRES_DB": "docker",
+            "POSTGRES_PASSWORD": "password"
+          },
+          "healthChecks": [
+            {
+              "gracePeriodSeconds": 300,
+              "intervalSeconds": 60,
+              "maxConsecutiveFailures": 3,
+              "portIndex": 0,
+              "timeoutSeconds": 20,
+              "delaySeconds": 15,
+              "protocol": "TCP"
+            }
+          ],
+          "instances": 1,
+          "labels": {
+            "MARATHON_SINGLE_INSTANCE_APP": "true"
+          },
+          "maxLaunchDelaySeconds": 3600,
+          "mem": 512,
+          "gpus": 0,
+          "networks": [
+            {
+              "mode": "container/bridge"
+            }
+          ],
+          "residency": {
+            "relaunchEscalationTimeoutSeconds": 3600,
+            "taskLostBehavior": "WAIT_FOREVER"
+          },
+          "requirePorts": false,
+          "upgradeStrategy": {
+            "maximumOverCapacity": 0,
+            "minimumHealthCapacity": 0
+          },
+          "killSelection": "YOUNGEST_FIRST",
+          "unreachableStrategy": "disabled",
+          "fetch": [],
+          "constraints": []
+        }
+
