@@ -91,7 +91,7 @@
     dcos_package:
       name: kafka
       app_id: kafka
-      version: 2.6.0-2.2.1
+      version: 2.8.0-2.3.0
       state: present
       options:
         {
