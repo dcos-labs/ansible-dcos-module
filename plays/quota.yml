@@ -1,0 +1,44 @@
+---
+- name: Quota Test
+  hosts: localhost
+  serial: 1
+  become: false
+  tasks:
+
+  - name: Connect to the cluster
+    include: connection.yml
+
+  - name: create a marathon group
+    dcos_marathon_group:
+      group_id: dev
+      state: present
+      options:
+        enforceRole: true
+
+  - name: set a quota
+    dcos_quota:
+      group_id: dev
+      state: present
+      cpu: 10
+      mem: 8192
+
+  - name: run app (nginx)
+    dcos_marathon:
+      app_id: dev/nginx
+      state: present
+      options:
+        cpus: 0.5
+        mem: 256
+        instances: 1
+        container:
+          type: DOCKER
+          docker:
+            image: nginx
+          portMappings:
+            - containerPort: 80
+              hostPort: 0
+              protocol: tcp
+              name: default
+        networks:
+          - mode: container/bridge
+        role: dev

@@ -47,14 +47,15 @@ def get_quota_state(gid):
     display.vvv('looking for gid {}'.format(gid))
 
     state = 'absent'
-    for q in quotas:
-        try:
-            if gid == q['role']:
-                state = 'present'
-                display.vvv('found pool: {}'.format(gid))
+    if quotas!=None:
+        for q in quotas:
+            try:
+                if gid == q['role']:
+                    state = 'present'
+                    display.vvv('found pool: {}'.format(gid))
 
-        except KeyError:
-            continue
+            except KeyError:
+                continue
     return state
 
 def quota_create(gid, cpu, mem, disk, gpu):
